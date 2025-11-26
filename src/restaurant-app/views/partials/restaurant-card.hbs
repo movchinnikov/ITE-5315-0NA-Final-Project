@@ -1,5 +1,4 @@
-{{#each restaurants}}
-<div class="restaurant-card">
+<div class="restaurant-card" data-restaurant-id="{{_id}}">
     <div class="card-header">
         <h3 class="restaurant-name">{{name}}</h3>
         <div class="cuisine-badge">{{cuisine}}</div>
@@ -16,14 +15,23 @@
                 <span class="value">{{address.street}}, {{address.building}}</span>
             </div>
             <div class="info-item">
+                <span class="label">Cuisine:</span>
+                <span class="value">{{cuisine}}</span>
+            </div>
+            <div class="info-item">
                 <span class="label">Latest Grade:</span>
-                <span class="value grade-{{getLatestGrade}}">{{getLatestGrade}}</span>
+                <span class="value grade-{{latestGrade}}">{{latestGrade}}</span>
             </div>
             <div class="info-item">
                 <span class="label">Latest Score:</span>
-                <span class="value">{{getLatestScore}}/100</span>
+                <span class="value">{{latestScore}}/100</span>
             </div>
         </div>
     </div>
+    
+    <div class="card-footer">
+        <button class="btn-rate" data-restaurant-id="{{_id}}" data-restaurant-name="{{name}}">
+            Rate This Restaurant
+        </button>
+    </div>
 </div>
-{{/each}}

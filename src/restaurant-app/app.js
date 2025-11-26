@@ -3,6 +3,7 @@ const exphbs = require('express-handlebars');
 const path = require('path');
 const database = require('./config/database');
 const RestaurantService = require('./services/restaurantService');
+const hbsHelpers = require('./helpers/hbsHelpers'); // Добавляем эту строку
 
 const app = express();
 const PORT = 3000;
@@ -28,12 +29,13 @@ async function startServer() {
     
     console.log('Server started with pre-cached data');
 
-    // Handlebars setup
+    // Handlebars setup with helpers
     const hbs = exphbs.create({
       extname: '.hbs',
       defaultLayout: 'main',
       layoutsDir: path.join(__dirname, 'views/layouts'),
-      partialsDir: path.join(__dirname, 'views/partials')
+      partialsDir: path.join(__dirname, 'views/partials'),
+      helpers: hbsHelpers // Добавляем helpers
     });
 
     app.engine('hbs', hbs.engine);
@@ -134,6 +136,57 @@ async function startServer() {
         neighborhoods: restaurantService.getNeighborhoods().length,
         cuisines: restaurantService.getCuisines().length
       });
+    });
+
+    // API endpoint to render restaurant cards HTML
+    app.get('/api/restaurants/html', async (req, res) => {
+        try {
+            console.log('GET /api/restaurants/html - Rendering restaurant cards');
+            
+            const { neighborhood, cuisine, name, page = 1 } = req.query;
+
+            let restaurantsData;
+            
+            if (neighborhood) {
+                restaurantsData = await restaurantService.findRestaurantsInNeighborhood(
+                    neighborhood, cuisine, name, parseInt(page), 13
+                );
+            } else {
+                restaurantsData = await restaurantService.findAllRestaurants(
+                    cuisine, name, parseInt(page), 13
+                );
+            }
+
+            // Подготавливаем данные для шаблона
+            const preparedRestaurants = restaurantsData.restaurants.map(restaurant => 
+                hbsHelpers.prepareRestaurant(restaurant)
+            );
+
+            // Проверяем есть ли еще данные
+            const hasMoreData = preparedRestaurants.length > 12;
+            const restaurantsToRender = hasMoreData ? preparedRestaurants.slice(0, 12) : preparedRestaurants;
+
+            // Рендерим HTML
+            const html = await hbs.render(
+                path.join(__dirname, 'views/partials/restaurant-cards.hbs'),
+                { restaurants: restaurantsToRender }
+            );
+
+            res.json({
+                success: true,
+                html: html,
+                hasMoreData: hasMoreData,
+                currentPage: restaurantsData.currentPage,
+                totalPages: restaurantsData.totalPages
+            });
+
+        } catch (error) {
+            console.error('Error rendering restaurant cards:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Error rendering restaurants: ' + error.message
+            });
+        }
     });
 
     // Simple 404 handler

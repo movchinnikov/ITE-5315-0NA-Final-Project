@@ -2,17 +2,47 @@ $(document).ready(function() {
     console.log('Restaurant app loaded');
     let currentPage = 1;
     let isLoading = false;
+    let hasMoreData = true;
     let currentFilters = {};
 
     // Load restaurants when page is ready
     loadRestaurants();
 
+    // Infinite scroll with optimized loading
+    let scrollTimeout;
+    $(window).on('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(function() {
+            if (shouldLoadMore()) {
+                loadMoreRestaurants();
+            }
+        }, 100);
+    });
+
     // Filters form submission
     $('#filters-form').on('submit', function(e) {
         e.preventDefault();
+        resetAndLoadRestaurants();
+    });
+
+    // Clear filters
+    $('#clear-filters').on('click', function() {
+        console.log('Clearing filters');
+        $('#filters-form')[0].reset();
+        resetAndLoadRestaurants();
+    });
+
+    // Load more button (fallback)
+    $('#load-more').on('click', function() {
+        loadMoreRestaurants();
+    });
+
+    function resetAndLoadRestaurants() {
         currentPage = 1;
+        hasMoreData = true;
+        $('#restaurants-container').empty();
         
-        const formData = $(this).serializeArray();
+        const formData = $('#filters-form').serializeArray();
         currentFilters = {};
         
         formData.forEach(item => {
@@ -23,25 +53,38 @@ $(document).ready(function() {
         
         console.log('Applying filters:', currentFilters);
         loadRestaurants();
-    });
+    }
 
-    // Clear filters
-    $('#clear-filters').on('click', function() {
-        console.log('Clearing filters');
-        $('#filters-form')[0].reset();
-        currentFilters = {};
-        currentPage = 1;
-        loadRestaurants();
-    });
+    function shouldLoadMore() {
+        if (isLoading || !hasMoreData) {
+            return false;
+        }
+        
+        const scrollTop = $(window).scrollTop();
+        const windowHeight = $(window).height();
+        const documentHeight = $(document).height();
+        const scrollThreshold = 200; // pixels from bottom
+        
+        const shouldLoad = (scrollTop + windowHeight >= documentHeight - scrollThreshold);
+        
+        if (shouldLoad) {
+            console.log('Scroll threshold reached, loading more...');
+        }
+        
+        return shouldLoad;
+    }
 
-    // Load more restaurants
-    $('#load-more').on('click', function() {
-        console.log('Loading more restaurants, page:', currentPage + 1);
+    function loadMoreRestaurants() {
+        if (isLoading || !hasMoreData) {
+            console.log('Cannot load more: isLoading=', isLoading, 'hasMoreData=', hasMoreData);
+            return;
+        }
+        
         currentPage++;
+        console.log('Loading more restaurants, page:', currentPage);
         loadRestaurants(false);
-    });
+    }
 
-    // Load restaurants function
     function loadRestaurants(clearExisting = true) {
         if (isLoading) {
             console.log('Already loading, skipping...');
@@ -52,50 +95,61 @@ $(document).ready(function() {
         console.log('Loading restaurants, page:', currentPage, 'clear:', clearExisting);
         
         if (clearExisting) {
-            $('#restaurants-container').empty();
             $('#load-more-container').hide();
             $('#loading-indicator').show();
         } else {
-            $('#load-more').prop('disabled', true).text('Loading...');
+            // Show loading indicator at bottom for infinite scroll
+            $('#restaurants-container').append('<div class="infinite-loading">Loading more restaurants...</div>');
         }
 
         const loadData = { ...currentFilters, page: currentPage };
-        console.log('Request data:', loadData);
         
-        $.get('/api/restaurants', loadData)
+        $.get('/api/restaurants/html', loadData)
             .done(function(response) {
-                console.log('API response:', response);
+                console.log('API HTML response received, hasMoreData:', response.hasMoreData);
                 
                 if (response.success) {
-                    if (clearExisting) {
-                        $('#restaurants-container').empty();
-                    }
+                    // Remove loading indicator
+                    $('.infinite-loading').remove();
                     
-                    if (response.restaurants && response.restaurants.length > 0) {
-                        console.log(`Rendering ${response.restaurants.length} restaurants`);
-                        renderRestaurants(response.restaurants);
+                    if (response.html) {
+                        if (clearExisting) {
+                            $('#restaurants-container').html(response.html);
+                        } else {
+                            $('#restaurants-container').append(response.html);
+                        }
                         
-                        // Show/hide load more button
-                        if (response.pagination.hasNextPage) {
+                        hasMoreData = response.hasMoreData;
+                        console.log('Has more data to load:', hasMoreData);
+                        
+                        // Show load more button only if we have more data and page is short
+                        if (hasMoreData && $(document).height() <= $(window).height() * 1.5) {
                             $('#load-more-container').show();
-                            $('#load-more').data('page', response.pagination.currentPage);
-                            console.log('Has more pages, showing load more button');
                         } else {
                             $('#load-more-container').hide();
-                            console.log('No more pages, hiding load more button');
+                        }
+                        
+                        // If we still have space and more data, load next page automatically
+                        if (hasMoreData && $(document).height() <= $(window).height()) {
+                            console.log('Page is short, auto-loading next page...');
+                            setTimeout(() => loadMoreRestaurants(), 500);
                         }
                     } else if (clearExisting) {
                         console.log('No restaurants found');
                         showNoResults();
+                        hasMoreData = false;
                     }
                 } else {
                     console.error('API returned error:', response.message);
                     showError(response.message);
+                    hasMoreData = false;
                 }
             })
             .fail(function(xhr, status, error) {
-                console.error('Error loading restaurants:', error, xhr.responseText);
+                console.error('Error loading restaurants:', error);
+                $('.infinite-loading').remove();
                 showError('Failed to load restaurants: ' + error);
+                hasMoreData = false;
             })
             .always(function() {
                 isLoading = false;
@@ -105,63 +159,7 @@ $(document).ready(function() {
             });
     }
 
-    function renderRestaurants(restaurants) {
-        console.log('Rendering restaurants:', restaurants);
-        
-        restaurants.forEach(restaurant => {
-            console.log('Processing restaurant:', restaurant.name);
-            
-            // Use the model methods
-            const latestGrade = restaurant.getLatestGrade ? restaurant.getLatestGrade() : 
-                            (restaurant.grades && restaurant.grades.length > 0 ? restaurant.grades[0].grade : 'N/A');
-            
-            const latestScore = restaurant.getLatestScore ? restaurant.getLatestScore() : 
-                             (restaurant.grades && restaurant.grades.length > 0 ? restaurant.grades[0].score : 'N/A');
-            
-            console.log(`Restaurant: ${restaurant.name}, Grade: ${latestGrade}, Score: ${latestScore}`);
-            
-            const restaurantHtml = `
-                <div class="restaurant-card">
-                    <div class="card-header">
-                        <h3 class="restaurant-name">${restaurant.name}</h3>
-                        <div class="cuisine-badge">${restaurant.cuisine}</div>
-                    </div>
-                    
-                    <div class="card-body">
-                        <div class="restaurant-info">
-                            <div class="info-item">
-                                <span class="label">Location:</span>
-                                <span class="value">${restaurant.borough}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Address:</span>
-                                <span class="value">${restaurant.address.street}, ${restaurant.address.building}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Cuisine:</span>
-                                <span class="value">${restaurant.cuisine}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Latest Grade:</span>
-                                <span class="value grade-${latestGrade}">${latestGrade}</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="label">Latest Score:</span>
-                                <span class="value">${latestScore}/100</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            $('#restaurants-container').append(restaurantHtml);
-        });
-        
-        console.log('Finished rendering all restaurants');
-    }
-
     function showNoResults() {
-        console.log('Showing no results message');
         $('#restaurants-container').html(`
             <div class="no-results">
                 <h3>No restaurants found</h3>
@@ -171,7 +169,6 @@ $(document).ready(function() {
     }
 
     function showError(message) {
-        console.log('Showing error message:', message);
         $('#restaurants-container').html(`
             <div class="no-results">
                 <h3>Error loading restaurants</h3>
