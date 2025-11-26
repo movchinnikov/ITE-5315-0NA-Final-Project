@@ -1,0 +1,36 @@
+<section class="filters-section">
+    <form id="filters-form" class="filters-form">
+        <div class="filters-grid">
+            <div class="form-group">
+                <label for="neighborhood">Neighborhood</label>
+                <select id="neighborhood" name="neighborhood">
+                    <option value="">All Neighborhoods</option>
+                    {{#each neighborhoods}}
+                        <option value="{{this}}">{{this}}</option>
+                    {{/each}}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="cuisine">Cuisine Type</label>
+                <select id="cuisine" name="cuisine">
+                    <option value="">All Cuisines</option>
+                    {{#each cuisines}}
+                        <option value="{{this}}">{{this}}</option>
+                    {{/each}}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="name">Restaurant Name</label>
+                <input type="text" id="name" name="name" placeholder="Search by name...">
+            </div>
+            
+            <div class="form-group">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn-primary">Apply Filters</button>
+                <button type="button" id="clear-filters" class="btn-secondary">Clear</button>
+            </div>
+        </div>
+    </form>
+</section>

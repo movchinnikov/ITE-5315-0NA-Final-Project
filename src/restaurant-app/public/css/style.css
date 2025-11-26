@@ -1,0 +1,210 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px; /* 1rem = 16px */
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0a0a0a;
+    color: #ffffff;
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+.container {
+    max-width: 75rem; /* 1200px */
+    margin: 0 auto;
+    padding: 0 1.25rem; /* 20px */
+}
+
+/* Header */
+.header {
+    background: #1a1a1a;
+    border-bottom: 0.0625rem solid #333333; /* 1px */
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.logo {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.tagline {
+    color: #b0b0b0;
+    font-size: 1.1rem;
+}
+
+/* Filters */
+.filters-section {
+    background: #1a1a1a;
+    padding: 1.5rem;
+    border-radius: 0.625rem; /* 10px */
+    border: 0.0625rem solid #333333; /* 1px */
+    margin-bottom: 2rem;
+}
+
+.filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr)); /* 200px */
+    gap: 1rem;
+    align-items: end;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+input, select {
+    background: #0a0a0a;
+    border: 0.0625rem solid #333333; /* 1px */
+    border-radius: 0.3125rem; /* 5px */
+    padding: 0.75rem;
+    color: #ffffff;
+    font-size: 1rem;
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #ff6b35;
+}
+
+/* Buttons */
+.btn-primary {
+    background: #ff6b35;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.3125rem; /* 5px */
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: #e55a2b;
+}
+
+.btn-secondary {
+    background: #2a2a2a;
+    color: #ffffff;
+    border: 0.0625rem solid #333333; /* 1px */
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.3125rem; /* 5px */
+    cursor: pointer;
+    font-size: 1rem;
+    margin-left: 0.5rem;
+}
+
+.btn-secondary:hover {
+    background: #333333;
+}
+
+/* Restaurant Cards */
+.restaurants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(21.875rem, 1fr)); /* 350px */
+    gap: 1.5rem;
+}
+
+.restaurant-card {
+    background: #2a2a2a;
+    border: 0.0625rem solid #333333; /* 1px */
+    border-radius: 0.625rem; /* 10px */
+    padding: 1.5rem;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.restaurant-name {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    flex: 1;
+}
+
+.cuisine-badge {
+    background: #ff6b35;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1.25rem; /* 20px */
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.card-body {
+    margin-bottom: 1rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 0.0625rem solid #333333; /* 1px */
+}
+
+.label {
+    color: #b0b0b0;
+    font-weight: 500;
+}
+
+.value {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* Grade colors */
+.grade-A { color: #27ae60; }
+.grade-B { color: #f39c12; }
+.grade-C { color: #e74c3c; }
+.grade-N/A { color: #b0b0b0; }
+
+/* Responsive */
+@media (max-width: 48rem) { /* 768px */
+    .filters-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .restaurants-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .container {
+        padding: 0 1rem;
+    }
+    
+    .logo {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 30rem) { /* 480px */
+    html {
+        font-size: 14px;
+    }
+    
+    .header {
+        padding: 1.5rem 0;
+    }
+    
+    .filters-section {
+        padding: 1rem;
+    }
+}

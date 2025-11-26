@@ -1,0 +1,29 @@
+{{#each restaurants}}
+<div class="restaurant-card">
+    <div class="card-header">
+        <h3 class="restaurant-name">{{name}}</h3>
+        <div class="cuisine-badge">{{cuisine}}</div>
+    </div>
+    
+    <div class="card-body">
+        <div class="restaurant-info">
+            <div class="info-item">
+                <span class="label">Location:</span>
+                <span class="value">{{borough}}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Address:</span>
+                <span class="value">{{address.street}}, {{address.building}}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Latest Grade:</span>
+                <span class="value grade-{{getLatestGrade}}">{{getLatestGrade}}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Latest Score:</span>
+                <span class="value">{{getLatestScore}}/100</span>
+            </div>
+        </div>
+    </div>
+</div>
+{{/each}}
