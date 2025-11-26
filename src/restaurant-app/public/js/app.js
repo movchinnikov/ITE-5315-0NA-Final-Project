@@ -37,6 +37,111 @@ $(document).ready(function() {
         loadMoreRestaurants();
     });
 
+    // Rating modal functionality
+    $(document).on('click', '.btn-rate', function() {
+        const restaurantId = $(this).data('restaurant-id');
+        const restaurantName = $(this).data('restaurant-name');
+        
+        $('#rating-restaurant-id').val(restaurantId);
+        $('#rating-modal h3').text('Rate ' + restaurantName);
+        $('#rating-modal').show();
+        $('body').css('overflow', 'hidden');
+    });
+
+    // Close modal
+    $('.close, #cancel-rating').on('click', function() {
+        closeRatingModal();
+    });
+
+    // Close modal when clicking outside
+    $(window).on('click', function(e) {
+        if ($(e.target).is('#rating-modal')) {
+            closeRatingModal();
+        }
+    });
+
+    // Update score display
+    $('#rating-score').on('input', function() {
+        $('#score-value').text($(this).val());
+    });
+
+    // Submit rating form
+    $('#rating-form').on('submit', function(e) {
+        e.preventDefault();
+        submitRating();
+    });
+
+    function closeRatingModal() {
+        $('#rating-modal').hide();
+        $('body').css('overflow', 'auto');
+        $('#rating-form')[0].reset();
+        $('#score-value').text('50');
+    }
+
+    function submitRating() {
+        const formData = $('#rating-form').serializeArray();
+        const ratingData = {};
+        
+        formData.forEach(item => {
+            ratingData[item.name] = item.name === 'score' ? parseInt(item.value) : item.value;
+        });
+
+        console.log('Submitting rating:', ratingData);
+
+        // Show loading state
+        $('#rating-form').hide();
+        $('.modal-body').html('<div class="rating-success">Submitting rating...</div>');
+
+        $.ajax({
+            url: '/api/rate',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(ratingData),
+            success: function(response) {
+                if (response.success) {
+                    $('.modal-body').html(`
+                        <div class="rating-success">
+                            Rating submitted successfully!
+                            <p>Thank you for your feedback</p>
+                        </div>
+                    `);
+                    
+                    setTimeout(() => {
+                        closeRatingModal();
+                        // Optional: Reload user ratings for this restaurant
+                        loadUserRating(ratingData.restaurant_id);
+                    }, 2000);
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON;
+                $('.modal-body').html(`
+                    <div class="no-results">
+                        <h3>Error submitting rating</h3>
+                        <p>${error.message || 'Please try again'}</p>
+                        <button class="btn-primary" onclick="location.reload()">Retry</button>
+                    </div>
+                `);
+            }
+        });
+    }
+
+    function loadUserRating(restaurantId) {
+        // Optional: Load and display average user rating
+        $.get(`/api/restaurants/${restaurantId}/user-rating`)
+            .done(function(response) {
+                if (response.success && response.average_rating) {
+                    $(`[data-restaurant-id="${restaurantId}"] .btn-rate`)
+                        .text(`Rated: ${response.average_rating}/100`)
+                        .prop('disabled', true)
+                        .css('opacity', '0.7');
+                }
+            })
+            .fail(function() {
+                // Silently fail - user ratings are optional
+            });
+    }
+
     function resetAndLoadRestaurants() {
         currentPage = 1;
         hasMoreData = true;
@@ -63,7 +168,7 @@ $(document).ready(function() {
         const scrollTop = $(window).scrollTop();
         const windowHeight = $(window).height();
         const documentHeight = $(document).height();
-        const scrollThreshold = 200; // pixels from bottom
+        const scrollThreshold = 200;
         
         const shouldLoad = (scrollTop + windowHeight >= documentHeight - scrollThreshold);
         
@@ -98,7 +203,6 @@ $(document).ready(function() {
             $('#load-more-container').hide();
             $('#loading-indicator').show();
         } else {
-            // Show loading indicator at bottom for infinite scroll
             $('#restaurants-container').append('<div class="infinite-loading">Loading more restaurants...</div>');
         }
 
@@ -109,7 +213,6 @@ $(document).ready(function() {
                 console.log('API HTML response received, hasMoreData:', response.hasMoreData);
                 
                 if (response.success) {
-                    // Remove loading indicator
                     $('.infinite-loading').remove();
                     
                     if (response.html) {
@@ -122,14 +225,12 @@ $(document).ready(function() {
                         hasMoreData = response.hasMoreData;
                         console.log('Has more data to load:', hasMoreData);
                         
-                        // Show load more button only if we have more data and page is short
                         if (hasMoreData && $(document).height() <= $(window).height() * 1.5) {
                             $('#load-more-container').show();
                         } else {
                             $('#load-more-container').hide();
                         }
                         
-                        // If we still have space and more data, load next page automatically
                         if (hasMoreData && $(document).height() <= $(window).height()) {
                             console.log('Page is short, auto-loading next page...');
                             setTimeout(() => loadMoreRestaurants(), 500);

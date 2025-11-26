@@ -85,6 +85,145 @@
     font-size: 1.1rem;
 }
 
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+    background: #2a2a2a;
+    margin: 10% auto;
+    padding: 0;
+    border-radius: 0.625rem;
+    width: 90%;
+    max-width: 31.25rem;
+    border: 0.0625rem solid #333333;
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-3.125rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 0.0625rem solid #333333;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #ffffff;
+}
+
+.close {
+    color: #b0b0b0;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.close:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Score input styles */
+.score-input-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.score-slider {
+    flex: 1;
+    height: 0.5rem;
+    border-radius: 0.25rem;
+    background: #333333;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.score-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: #ff6b35;
+    cursor: pointer;
+}
+
+.score-slider::-moz-range-thumb {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: #ff6b35;
+    cursor: pointer;
+    border: none;
+}
+
+.score-display {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #ff6b35;
+    min-width: 4rem;
+    text-align: center;
+}
+
+.score-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    color: #b0b0b0;
+    font-size: 0.9rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.form-actions button {
+    flex: 1;
+}
+
+/* Success message */
+.rating-success {
+    text-align: center;
+    padding: 2rem;
+    color: #27ae60;
+}
+
+.rating-success:before {
+    content: "✅ ";
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
 /* Responsive components */
 @media (max-width: 48rem) { /* 768px */
     .error-content {
@@ -104,6 +243,7 @@
         font-size: 1.3rem;
     }
 }
+
 
 @media (max-width: 30rem) { /* 480px */
     .error-content {
