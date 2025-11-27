@@ -8,6 +8,9 @@ $(document).ready(function() {
     // Load restaurants when page is ready
     loadRestaurants();
 
+    authService.setupAjaxInterceptors();
+    authService.updateUI();
+
     // Infinite scroll with optimized loading
     let scrollTimeout;
     $(window).on('scroll', function() {
@@ -70,6 +73,16 @@ $(document).ready(function() {
         e.preventDefault();
         submitRating();
     });
+
+    // Auth event handlers
+    $('#login-btn').on('click', showLoginModal);
+    $('#signup-btn').on('click', showSignupModal);
+    $('#logout-btn').on('click', () => authService.logout());
+    
+    // Auth modal handlers
+    $('.close, #cancel-auth').on('click', closeAuthModal);
+    $('#auth-switch-btn').on('click', toggleAuthMode);
+    $('#auth-form').on('submit', handleAuthSubmit);
 
     function closeRatingModal() {
         $('#rating-modal').hide();
@@ -276,5 +289,77 @@ $(document).ready(function() {
                 <p>${message || 'Please try again later'}</p>
             </div>
         `);
+    }
+
+    // Auth modal functions
+    function showLoginModal() {
+        $('#auth-modal-title').text('Login');
+        $('#auth-submit-btn').text('Login');
+        $('#auth-switch-text').text("Don't have an account?");
+        $('#auth-switch-btn').text('Sign Up');
+        $('#auth-confirm-password').hide();
+        $('#auth-form')[0].reset();
+        $('#auth-modal').show();
+    }
+
+    function showSignupModal() {
+        $('#auth-modal-title').text('Sign Up');
+        $('#auth-submit-btn').text('Sign Up');
+        $('#auth-switch-text').text('Already have an account?');
+        $('#auth-switch-btn').text('Login');
+        $('#auth-confirm-password').show();
+        $('#auth-form')[0].reset();
+        $('#auth-modal').show();
+    }
+
+    function closeAuthModal() {
+        $('#auth-modal').hide();
+        $('#auth-form')[0].reset();
+        $('#auth-message').empty().removeClass('success error');
+    }
+
+    function toggleAuthMode() {
+        if ($('#auth-modal-title').text() === 'Login') {
+            showSignupModal();
+        } else {
+            showLoginModal();
+        }
+    }
+
+    async function handleAuthSubmit(e) {
+        e.preventDefault();
+        
+        const formData = $('#auth-form').serializeArray();
+        const data = {};
+        formData.forEach(item => data[item.name] = item.value);
+        
+        const isLogin = $('#auth-modal-title').text() === 'Login';
+        const url = isLogin ? '/auth/login' : '/auth/register';
+        
+        try {
+            const response = await $.ajax({
+                url: url,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data)
+            });
+            
+            if (response.success) {
+                authService.setAuthData(response);
+                authService.updateUI();
+                closeAuthModal();
+                showAuthMessage('Success!', 'success');
+            }
+        } catch (error) {
+            const message = error.responseJSON?.message || 'Authentication failed';
+            showAuthMessage(message, 'error');
+        }
+    }
+
+    function showAuthMessage(message, type) {
+        $('#auth-message')
+            .text(message)
+            .removeClass('success error')
+            .addClass(type);
     }
 });

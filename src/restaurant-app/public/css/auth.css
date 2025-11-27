@@ -1,0 +1,59 @@
+/* Header Auth Styles */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-auth {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.auth-section, .user-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.welcome-text {
+    color: #b0b0b0;
+    margin-right: 1rem;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #ff6b35;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.btn-link:hover {
+    color: #e55a2b;
+}
+
+/* Auth Modal Styles */
+.auth-switch {
+    text-align: center;
+    margin-top: 1rem;
+    color: #b0b0b0;
+}
+
+.auth-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 0.3125rem;
+    text-align: center;
+}
+
+.auth-message.success {
+    background: #27ae60;
+    color: white;
+}
+
+.auth-message.error {
+    background: #e74c3c;
+    color: white;
+}

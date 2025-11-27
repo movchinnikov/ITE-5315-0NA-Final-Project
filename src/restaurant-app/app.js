@@ -3,7 +3,9 @@ const exphbs = require('express-handlebars');
 const path = require('path');
 const database = require('./config/database');
 const RestaurantService = require('./services/restaurantService');
-const hbsHelpers = require('./helpers/hbsHelpers'); // Добавляем эту строку
+const hbsHelpers = require('./helpers/hbsHelpers');
+const { authenticateToken } = require('./middleware/auth');
+const authRoutes = require('./routes/auth');
 
 const app = express();
 const PORT = 3000;
@@ -46,6 +48,8 @@ async function startServer() {
     app.use(express.static(path.join(__dirname, 'public')));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
+    app.use(authenticateToken);
+    app.use('/auth', authRoutes);
 
     // Routes
     app.get('/', async (req, res) => {
