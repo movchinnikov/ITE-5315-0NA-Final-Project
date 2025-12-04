@@ -1,279 +1,436 @@
-$(document).ready(function() {
-    console.log('Restaurant app loaded');
-    let currentPage = 1;
-    let isLoading = false;
-    let hasMoreData = true;
-    let currentFilters = {};
-
-    // Load restaurants when page is ready
-    loadRestaurants();
-
-    authService.setupAjaxInterceptors();
-    authService.updateUI();
-
-    // Infinite scroll with optimized loading
-    let scrollTimeout;
-    $(window).on('scroll', function() {
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(function() {
-            if (shouldLoadMore()) {
-                loadMoreRestaurants();
-            }
-        }, 100);
-    });
-
-    // Filters form submission
-    $('#filters-form').on('submit', function(e) {
-        e.preventDefault();
-        resetAndLoadRestaurants();
-    });
-
-    // Clear filters
-    $('#clear-filters').on('click', function() {
-        console.log('Clearing filters');
-        $('#filters-form')[0].reset();
-        resetAndLoadRestaurants();
-    });
-
-    // Load more button (fallback)
-    $('#load-more').on('click', function() {
-        loadMoreRestaurants();
-    });
-
-    // Rating modal functionality
-    $(document).on('click', '.btn-rate', function() {
-        const restaurantId = $(this).data('restaurant-id');
-        const restaurantName = $(this).data('restaurant-name');
+class RestaurantApp {
+    constructor() {
+        this.currentPage = 1;
+        this.isLoading = false;
+        this.hasMoreData = true;
+        this.currentFilters = {};
+        this.currentRestaurantId = null;
+        this.commentsPage = 1;
         
-        $('#rating-restaurant-id').val(restaurantId);
-        $('#rating-modal h3').text('Rate ' + restaurantName);
-        $('#rating-modal').show();
-        $('body').css('overflow', 'hidden');
-    });
+        $(document).ready(() => {
+            this.initialize();
+        });
+    }
 
-    // Close modal
-    $('.close, #cancel-rating').on('click', function() {
-        closeRatingModal();
-    });
+    initialize() {
+        this.setupEventListeners();
+        this.initializeStarRatings();
+        this.parseUrlFilters();
+        this.loadRestaurants();
+        this.updateCommentsSection();
+    }
 
-    // Close modal when clicking outside
-    $(window).on('click', function(e) {
-        if ($(e.target).is('#rating-modal')) {
-            closeRatingModal();
+    initializeStarRatings() {
+        $(document).on('click', '.star-btn', function() {
+            const rating = $(this).data('rating');
+            $(this).parent().find('.star-btn').removeClass('active');
+            $(this).prevAll('.star-btn').addBack().addClass('active');
+            $(this).closest('.rating-input').find('input[name="rating"]').val(rating);
+        });
+    }
+
+    setupEventListeners() {
+        $('#filters-form').on('submit', (e) => {
+            e.preventDefault();
+            this.updateUrlFromFilters();
+        });
+
+        $('#clear-filters').on('click', () => {
+            $('#filters-form')[0].reset();
+            this.clearUrlFilters();
+        });
+
+        $('#load-more').on('click', () => this.loadMoreRestaurants());
+
+        let scrollTimeout;
+        $(window).on('scroll', () => {
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                if (this.shouldLoadMore()) {
+                    this.loadMoreRestaurants();
+                }
+            }, 100);
+        });
+
+        $(document).on('click', '.btn-rate', (e) => {
+            const restaurantId = $(e.target).data('restaurant-id');
+            const restaurantName = $(e.target).data('restaurant-name');
+            this.showRatingModal(restaurantId, restaurantName);
+        });
+
+        $('#comment-form').on('submit', (e) => {
+            e.preventDefault();
+            this.submitComment();
+        });
+
+        $('.close, #cancel-rating').on('click', this.closeRatingModal);
+        $('#rating-form').on('submit', (e) => this.submitRating(e));
+        $('#rating-score').on('input', (e) => {
+            $('#score-value').text(e.target.value);
+        });
+
+        $(window).on('popstate', (e) => {
+            if (e.originalEvent.state && e.originalEvent.state.filters) {
+                this.currentFilters = e.originalEvent.state.filters;
+                this.applyFiltersFromUrl();
+            } else {
+                this.parseUrlFilters();
+            }
+        });
+
+        $(document).on('click', '.btn-back', (e) => {
+            e.preventDefault();
+            this.goBackToList();
+        });
+    }
+
+    parseUrlFilters() {
+        const urlParams = new URLSearchParams(window.location.search);
+        this.currentFilters = {};
+        
+        const filters = ['neighborhood', 'cuisine', 'name', 'page'];
+        
+        filters.forEach(filter => {
+            const value = urlParams.get(filter);
+            if (value) {
+                this.currentFilters[filter] = value;
+            }
+        });
+        
+        this.updateFormFromFilters();
+        this.currentPage = parseInt(this.currentFilters.page) || 1;
+    }
+
+    updateFormFromFilters() {
+        if (this.currentFilters.neighborhood) {
+            $('#neighborhood').val(this.currentFilters.neighborhood);
         }
-    });
-
-    // Update score display
-    $('#rating-score').on('input', function() {
-        $('#score-value').text($(this).val());
-    });
-
-    // Submit rating form
-    $('#rating-form').on('submit', function(e) {
-        e.preventDefault();
-        submitRating();
-    });
-
-    // Auth event handlers
-    $('#login-btn').on('click', showLoginModal);
-    $('#signup-btn').on('click', showSignupModal);
-    $('#logout-btn').on('click', () => authService.logout());
-    
-    // Auth modal handlers
-    $('.close, #cancel-auth').on('click', closeAuthModal);
-    $('#auth-switch-btn').on('click', toggleAuthMode);
-    $('#auth-form').on('submit', handleAuthSubmit);
-
-    function closeRatingModal() {
-        $('#rating-modal').hide();
-        $('body').css('overflow', 'auto');
-        $('#rating-form')[0].reset();
-        $('#score-value').text('50');
-    }
-
-    function submitRating() {
-        const formData = $('#rating-form').serializeArray();
-        const ratingData = {};
         
-        formData.forEach(item => {
-            ratingData[item.name] = item.name === 'score' ? parseInt(item.value) : item.value;
-        });
-
-        console.log('Submitting rating:', ratingData);
-
-        // Show loading state
-        $('#rating-form').hide();
-        $('.modal-body').html('<div class="rating-success">Submitting rating...</div>');
-
-        $.ajax({
-            url: '/api/rate',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(ratingData),
-            success: function(response) {
-                if (response.success) {
-                    $('.modal-body').html(`
-                        <div class="rating-success">
-                            Rating submitted successfully!
-                            <p>Thank you for your feedback</p>
-                        </div>
-                    `);
-                    
-                    setTimeout(() => {
-                        closeRatingModal();
-                        // Optional: Reload user ratings for this restaurant
-                        loadUserRating(ratingData.restaurant_id);
-                    }, 2000);
-                }
-            },
-            error: function(xhr) {
-                const error = xhr.responseJSON;
-                $('.modal-body').html(`
-                    <div class="no-results">
-                        <h3>Error submitting rating</h3>
-                        <p>${error.message || 'Please try again'}</p>
-                        <button class="btn-primary" onclick="location.reload()">Retry</button>
-                    </div>
-                `);
-            }
-        });
-    }
-
-    function loadUserRating(restaurantId) {
-        // Optional: Load and display average user rating
-        $.get(`/api/restaurants/${restaurantId}/user-rating`)
-            .done(function(response) {
-                if (response.success && response.average_rating) {
-                    $(`[data-restaurant-id="${restaurantId}"] .btn-rate`)
-                        .text(`Rated: ${response.average_rating}/100`)
-                        .prop('disabled', true)
-                        .css('opacity', '0.7');
-                }
-            })
-            .fail(function() {
-                // Silently fail - user ratings are optional
-            });
-    }
-
-    function resetAndLoadRestaurants() {
-        currentPage = 1;
-        hasMoreData = true;
-        $('#restaurants-container').empty();
+        if (this.currentFilters.cuisine) {
+            $('#cuisine').val(this.currentFilters.cuisine);
+        }
         
+        if (this.currentFilters.name) {
+            $('#name').val(this.currentFilters.name);
+        }
+    }
+
+    updateUrlFromFilters() {
         const formData = $('#filters-form').serializeArray();
-        currentFilters = {};
+        const newFilters = {};
         
         formData.forEach(item => {
             if (item.value) {
-                currentFilters[item.name] = item.value;
+                newFilters[item.name] = item.value;
             }
         });
         
-        console.log('Applying filters:', currentFilters);
-        loadRestaurants();
+        newFilters.page = 1;
+        this.currentFilters = newFilters;
+        this.currentPage = 1;
+        
+        const url = new URL(window.location);
+        const params = new URLSearchParams();
+        
+        Object.keys(this.currentFilters).forEach(key => {
+            params.set(key, this.currentFilters[key]);
+        });
+        
+        const newUrl = `${url.pathname}?${params.toString()}`;
+        
+        window.history.pushState(
+            { filters: this.currentFilters },
+            document.title,
+            newUrl
+        );
+        
+        this.resetAndLoadRestaurants();
     }
 
-    function shouldLoadMore() {
-        if (isLoading || !hasMoreData) {
-            return false;
+    clearUrlFilters() {
+        const url = new URL(window.location);
+        const newUrl = url.pathname;
+        
+        window.history.pushState(
+            { filters: {} },
+            document.title,
+            newUrl
+        );
+        
+        this.currentFilters = {};
+        this.currentPage = 1;
+        this.resetAndLoadRestaurants();
+    }
+
+    applyFiltersFromUrl() {
+        this.updateFormFromFilters();
+        this.currentPage = parseInt(this.currentFilters.page) || 1;
+        this.resetAndLoadRestaurants();
+    }
+
+    goBackToList() {
+        const referrer = document.referrer;
+        const currentPath = window.location.pathname;
+        
+        if (referrer && referrer.includes(window.location.origin)) {
+            const referrerPath = new URL(referrer).pathname;
+            if (referrerPath === '/' || referrerPath === '') {
+                window.history.back();
+            } else {
+                window.location.href = referrer;
+            }
+        } else {
+            window.location.href = '/';
         }
+    }
+
+    resetAndLoadRestaurants() {
+        this.currentPage = this.currentFilters.page || 1;
+        this.hasMoreData = true;
+        $('#restaurants-container').empty();
+        this.loadRestaurants();
+    }
+
+    shouldLoadMore() {
+        if (this.isLoading || !this.hasMoreData) return false;
         
         const scrollTop = $(window).scrollTop();
         const windowHeight = $(window).height();
         const documentHeight = $(document).height();
         const scrollThreshold = 200;
         
-        const shouldLoad = (scrollTop + windowHeight >= documentHeight - scrollThreshold);
-        
-        if (shouldLoad) {
-            console.log('Scroll threshold reached, loading more...');
-        }
-        
-        return shouldLoad;
+        return (scrollTop + windowHeight >= documentHeight - scrollThreshold);
     }
 
-    function loadMoreRestaurants() {
-        if (isLoading || !hasMoreData) {
-            console.log('Cannot load more: isLoading=', isLoading, 'hasMoreData=', hasMoreData);
-            return;
-        }
+    loadMoreRestaurants() {
+        if (this.isLoading || !this.hasMoreData) return;
         
-        currentPage++;
-        console.log('Loading more restaurants, page:', currentPage);
-        loadRestaurants(false);
+        this.currentPage++;
+        this.currentFilters.page = this.currentPage;
+        this.updateUrlWithCurrentPage();
+        
+        this.loadRestaurants(false);
     }
 
-    function loadRestaurants(clearExisting = true) {
-        if (isLoading) {
-            console.log('Already loading, skipping...');
-            return;
-        }
+    updateUrlWithCurrentPage() {
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
         
-        isLoading = true;
-        console.log('Loading restaurants, page:', currentPage, 'clear:', clearExisting);
+        params.set('page', this.currentPage);
+        
+        const newUrl = `${url.pathname}?${params.toString()}`;
+        
+        window.history.replaceState(
+            { filters: this.currentFilters },
+            document.title,
+            newUrl
+        );
+    }
+
+    async loadRestaurants(clearExisting = true) {
+        if (this.isLoading) return;
+        
+        this.isLoading = true;
         
         if (clearExisting) {
             $('#load-more-container').hide();
             $('#loading-indicator').show();
         } else {
-            $('#restaurants-container').append('<div class="infinite-loading">Loading more restaurants...</div>');
+            $('#restaurants-container').append('<div class="loading-indicator">Loading more restaurants...</div>');
         }
 
-        const loadData = { ...currentFilters, page: currentPage };
+        const loadData = { ...this.currentFilters };
+        loadData.page = this.currentPage;
+        delete loadData.page;
         
-        $.get('/api/restaurants/html', loadData)
-            .done(function(response) {
-                console.log('API HTML response received, hasMoreData:', response.hasMoreData);
+        try {
+            const response = await $.get('/api/restaurants', loadData);
+            
+            if (response.success) {
+                $('.loading-indicator').remove();
                 
-                if (response.success) {
-                    $('.infinite-loading').remove();
+                if (response.restaurants && response.restaurants.length > 0) {
+                    const html = this.renderRestaurants(response.restaurants);
                     
-                    if (response.html) {
-                        if (clearExisting) {
-                            $('#restaurants-container').html(response.html);
-                        } else {
-                            $('#restaurants-container').append(response.html);
-                        }
-                        
-                        hasMoreData = response.hasMoreData;
-                        console.log('Has more data to load:', hasMoreData);
-                        
-                        if (hasMoreData && $(document).height() <= $(window).height() * 1.5) {
-                            $('#load-more-container').show();
-                        } else {
-                            $('#load-more-container').hide();
-                        }
-                        
-                        if (hasMoreData && $(document).height() <= $(window).height()) {
-                            console.log('Page is short, auto-loading next page...');
-                            setTimeout(() => loadMoreRestaurants(), 500);
-                        }
-                    } else if (clearExisting) {
-                        console.log('No restaurants found');
-                        showNoResults();
-                        hasMoreData = false;
+                    if (clearExisting) {
+                        $('#restaurants-container').html(html);
+                    } else {
+                        $('#restaurants-container').append(html);
                     }
-                } else {
-                    console.error('API returned error:', response.message);
-                    showError(response.message);
-                    hasMoreData = false;
+                    
+                    this.hasMoreData = response.pagination.hasNextPage;
+                    
+                    if (this.hasMoreData) {
+                        $('#load-more-container').show();
+                    }
+                    
+                    if (this.hasMoreData && $(document).height() <= $(window).height()) {
+                        setTimeout(() => this.loadMoreRestaurants(), 500);
+                    }
+                } else if (clearExisting) {
+                    this.showNoResults();
+                    this.hasMoreData = false;
                 }
-            })
-            .fail(function(xhr, status, error) {
-                console.error('Error loading restaurants:', error);
-                $('.infinite-loading').remove();
-                showError('Failed to load restaurants: ' + error);
-                hasMoreData = false;
-            })
-            .always(function() {
-                isLoading = false;
-                $('#loading-indicator').hide();
-                $('#load-more').prop('disabled', false).text('Load More Restaurants');
-                console.log('Loading completed');
-            });
+            } else {
+                this.showError(response.message);
+                this.hasMoreData = false;
+            }
+        } catch (error) {
+            console.error('Error loading restaurants:', error);
+            this.showError('Failed to load restaurants. Please try again.');
+            this.hasMoreData = false;
+        } finally {
+            this.isLoading = false;
+            $('#loading-indicator').hide();
+            $('#load-more').prop('disabled', false).text('Load More Restaurants');
+        }
     }
 
-    function showNoResults() {
+    renderRestaurants(restaurants) {
+        return restaurants.map(restaurant => `
+            <div class="restaurant-card" data-restaurant-id="${restaurant._id}">
+                <img src="${restaurant.thumbnail}" alt="${restaurant.name}" class="card-image">
+                <div class="card-content">
+                    <div class="card-header">
+                        <a href="/restaurants/${restaurant._id}" class="restaurant-name">${restaurant.name}</a>
+                        <div class="cuisine-badge">${restaurant.cuisine}</div>
+                    </div>
+                    <div class="restaurant-info">
+                        <div class="info-item">
+                            <span class="label">Location:</span>
+                            <span class="value">${restaurant.borough}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Latest Grade:</span>
+                            <span class="value grade-${restaurant.latestGrade.replace('/', '-')}">${restaurant.latestGrade}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Latest Score:</span>
+                            <span class="value">${restaurant.latestScore}/100</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-rate auth-required" 
+                            data-restaurant-id="${restaurant._id}" 
+                            data-restaurant-name="${restaurant.name}">
+                        Rate This Restaurant
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    updateCommentsSection() {
+        const path = window.location.pathname;
+        const match = path.match(/\/restaurants\/([^/]+)/);
+        
+        if (match) {
+            this.currentRestaurantId = match[1];
+            this.loadComments();
+        }
+    }
+
+    async loadComments() {
+        if (!this.currentRestaurantId) return;
+        
+        try {
+            const response = await $.get(`/api/restaurants/${this.currentRestaurantId}?page=${this.commentsPage}`);
+            
+            if (response.success && response.comments) {
+                this.renderComments(response.comments);
+                
+                if (response.comments.totalPages > this.commentsPage) {
+                    $('#load-more-comments').show();
+                } else {
+                    $('#load-more-comments').hide();
+                }
+            }
+        } catch (error) {
+            console.log('Failed to load comments');
+        }
+    }
+
+    renderComments(commentsData) {
+        const container = $('#comments-container');
+        const comments = commentsData.comments || [];
+        
+        if (comments.length === 0) {
+            container.html('<div class="no-results"><p>No comments yet. Be the first to comment!</p></div>');
+            return;
+        }
+        
+        const html = comments.map(comment => `
+            <div class="comment-card" data-comment-id="${comment._id}">
+                <div class="comment-header">
+                    <div class="comment-author">
+                        <img src="${comment.avatar || '/images/user-default.png'}" alt="${comment.username}" class="author-avatar">
+                        <div class="author-info">
+                            <h4>${comment.username}</h4>
+                            <span class="comment-date">${new Date(comment.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    ${comment.rating ? `<div class="comment-rating">${'★'.repeat(comment.rating)}${'☆'.repeat(5-comment.rating)}</div>` : ''}
+                </div>
+                <div class="comment-text">${this.escapeHtml(comment.text)}</div>
+                <div class="comment-actions">
+                    ${comment.can_edit ? '<button class="edit-btn">Edit</button>' : ''}
+                    ${comment.can_delete ? '<button class="delete-btn">Delete</button>' : ''}
+                </div>
+            </div>
+        `).join('');
+        
+        container.html(html);
+    }
+
+    async submitComment() {
+        if (!authService.isAuthenticated()) {
+            this.showAuthRequiredMessage();
+            return;
+        }
+        
+        const text = $('#comment-text').val().trim();
+        const rating = $('.star-btn.active').length;
+        
+        if (!text || text.length < 10) {
+            this.showMessage('Comment must be at least 10 characters', 'error');
+            return;
+        }
+        
+        if (rating < 1) {
+            this.showMessage('Please select a rating', 'error');
+            return;
+        }
+        
+        const submitBtn = $('#submit-comment');
+        submitBtn.prop('disabled', true).text('Submitting...');
+        
+        try {
+            const response = await $.ajax({
+                url: `/api/restaurants/${this.currentRestaurantId}/comments`,
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    text: text,
+                    rating: rating
+                })
+            });
+            
+            if (response.success) {
+                $('#comment-text').val('');
+                $('.star-btn').removeClass('active');
+                this.showMessage('Comment added successfully', 'success');
+                this.loadComments();
+            }
+        } catch (error) {
+            const errorMsg = error.responseJSON?.message || 'Failed to add comment';
+            this.showMessage(errorMsg, 'error');
+        } finally {
+            submitBtn.prop('disabled', false).text('Submit Comment');
+        }
+    }
+
+    showNoResults() {
         $('#restaurants-container').html(`
             <div class="no-results">
                 <h3>No restaurants found</h3>
@@ -282,7 +439,7 @@ $(document).ready(function() {
         `);
     }
 
-    function showError(message) {
+    showError(message) {
         $('#restaurants-container').html(`
             <div class="no-results">
                 <h3>Error loading restaurants</h3>
@@ -291,75 +448,24 @@ $(document).ready(function() {
         `);
     }
 
-    // Auth modal functions
-    function showLoginModal() {
-        $('#auth-modal-title').text('Login');
-        $('#auth-submit-btn').text('Login');
-        $('#auth-switch-text').text("Don't have an account?");
-        $('#auth-switch-btn').text('Sign Up');
-        $('#auth-confirm-password').hide();
-        $('#auth-form')[0].reset();
-        $('#auth-modal').show();
+    showAuthRequiredMessage() {
+        this.showMessage('Please login to perform this action', 'error');
+        setTimeout(() => $('#login-btn').click(), 1000);
     }
 
-    function showSignupModal() {
-        $('#auth-modal-title').text('Sign Up');
-        $('#auth-submit-btn').text('Sign Up');
-        $('#auth-switch-text').text('Already have an account?');
-        $('#auth-switch-btn').text('Login');
-        $('#auth-confirm-password').show();
-        $('#auth-form')[0].reset();
-        $('#auth-modal').show();
+    showMessage(message, type) {
+        const $message = $('<div class="auth-message ' + type + '">' + message + '</div>');
+        $('#messages-container').html($message);
+        setTimeout(() => $message.fadeOut(), 3000);
     }
 
-    function closeAuthModal() {
-        $('#auth-modal').hide();
-        $('#auth-form')[0].reset();
-        $('#auth-message').empty().removeClass('success error');
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
+}
 
-    function toggleAuthMode() {
-        if ($('#auth-modal-title').text() === 'Login') {
-            showSignupModal();
-        } else {
-            showLoginModal();
-        }
-    }
-
-    async function handleAuthSubmit(e) {
-        e.preventDefault();
-        
-        const formData = $('#auth-form').serializeArray();
-        const data = {};
-        formData.forEach(item => data[item.name] = item.value);
-        
-        const isLogin = $('#auth-modal-title').text() === 'Login';
-        const url = isLogin ? '/auth/login' : '/auth/register';
-        
-        try {
-            const response = await $.ajax({
-                url: url,
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(data)
-            });
-            
-            if (response.success) {
-                authService.setAuthData(response);
-                authService.updateUI();
-                closeAuthModal();
-                showAuthMessage('Success!', 'success');
-            }
-        } catch (error) {
-            const message = error.responseJSON?.message || 'Authentication failed';
-            showAuthMessage(message, 'error');
-        }
-    }
-
-    function showAuthMessage(message, type) {
-        $('#auth-message')
-            .text(message)
-            .removeClass('success error')
-            .addClass(type);
-    }
+$(document).ready(function() {
+    window.restaurantApp = new RestaurantApp();
 });

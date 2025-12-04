@@ -1,23 +1,20 @@
 const jwt = require('jsonwebtoken');
+const UserRepository = require('../repositories/UserRepository');
 
 class AuthService {
     constructor() {
         this.accessTokenSecret = process.env.JWT_ACCESS_SECRET || 'access_secret';
         this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
-        this.userRepository = null;
-    }
-
-    getUserRepository() {
-        if (!this.userRepository) {
-            const UserRepository = require('../repositories/userRepository');
-            this.userRepository = new UserRepository();
-        }
-        return this.userRepository;
+        this.userRepository = new UserRepository();
     }
 
     generateAccessToken(user) {
         return jwt.sign(
-            { userId: user._id.toString(), username: user.username },
+            { 
+                userId: user._id.toString(), 
+                username: user.username,
+                role: user.role 
+            },
             this.accessTokenSecret,
             { expiresIn: '15m' }
         );
@@ -25,7 +22,7 @@ class AuthService {
 
     generateRefreshToken(user) {
         return jwt.sign(
-            { userId: user._id.toString(), username: user.username },
+            { userId: user._id.toString() },
             this.refreshTokenSecret,
             { expiresIn: '7d' }
         );
@@ -33,25 +30,31 @@ class AuthService {
 
     async register(userData) {
         try {
-            const userRepository = this.getUserRepository();
-            const user = await userRepository.createUser(userData);
+            const user = await this.userRepository.create(userData);
             const accessToken = this.generateAccessToken(user);
             const refreshToken = this.generateRefreshToken(user);
 
             return {
-                user: JSON.parse(JSON.stringify(user)),
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    avatar: user.avatar,
+                    role: user.role,
+                    created_at: user.created_at,
+                    favorites: user.favorites
+                },
                 accessToken,
                 refreshToken
             };
         } catch (error) {
-            throw new Error(`Auth service error: ${error.message}`);
+            throw new Error(`Registration failed: ${error.message}`);
         }
     }
 
     async login(username, password) {
         try {
-            const userRepository = this.getUserRepository();
-            const user = await userRepository.findByUsername(username);
+            const user = await this.userRepository.findByUsername(username);
             if (!user) {
                 throw new Error('Invalid username or password');
             }
@@ -65,12 +68,20 @@ class AuthService {
             const refreshToken = this.generateRefreshToken(user);
 
             return {
-                user: JSON.parse(JSON.stringify(user)),
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    avatar: user.avatar,
+                    role: user.role,
+                    created_at: user.created_at,
+                    favorites: user.favorites
+                },
                 accessToken,
                 refreshToken
             };
         } catch (error) {
-            throw new Error(`Auth service error: ${error.message}`);
+            throw new Error(`Login failed: ${error.message}`);
         }
     }
 
@@ -93,8 +104,7 @@ class AuthService {
     async refreshTokens(refreshToken) {
         try {
             const decoded = this.verifyRefreshToken(refreshToken);
-            const userRepository = this.getUserRepository();
-            const user = await userRepository.findById(decoded.userId);
+            const user = await this.userRepository.findById(decoded.userId);
 
             if (!user) {
                 throw new Error('User not found');
@@ -108,7 +118,15 @@ class AuthService {
                 refreshToken: newRefreshToken
             };
         } catch (error) {
-            throw new Error(`Token refresh error: ${error.message}`);
+            throw new Error(`Token refresh failed: ${error.message}`);
+        }
+    }
+
+    async getCurrentUser(userId) {
+        try {
+            return await this.userRepository.findById(userId);
+        } catch (error) {
+            throw new Error(`Get user failed: ${error.message}`);
         }
     }
 }

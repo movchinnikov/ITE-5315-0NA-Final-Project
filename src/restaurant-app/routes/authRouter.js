@@ -1,21 +1,23 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/authMiddleware');
+const AuthService = require('../services/AuthService');
 
 const router = express.Router();
+const authService = new AuthService();
 
-function getAuthService() {
-    const AuthService = require('../services/authService');
-    return new AuthService();
-}
-
-// Register
 router.post('/register', async (req, res) => {
     try {
-        const authService = getAuthService();
+        if (!req.body.username || !req.body.password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username and password are required'
+            });
+        }
+        
         const result = await authService.register(req.body);
         res.json({
             success: true,
-            message: 'User registered successfully',
+            message: 'Registration successful',
             ...result
         });
     } catch (error) {
@@ -26,11 +28,17 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login
 router.post('/login', async (req, res) => {
     try {
-        const authService = getAuthService();
         const { username, password } = req.body;
+        
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Username and password are required'
+            });
+        }
+        
         const result = await authService.login(username, password);
         res.json({
             success: true,
@@ -45,11 +53,17 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Refresh tokens
 router.post('/refresh', async (req, res) => {
     try {
-        const authService = getAuthService();
         const { refreshToken } = req.body;
+        
+        if (!refreshToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Refresh token is required'
+            });
+        }
+        
         const result = await authService.refreshTokens(refreshToken);
         res.json({
             success: true,
@@ -63,22 +77,29 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-// Get current user
-router.get('/me', authenticateToken, (req, res) => {
-    if (!req.user) {
-        return res.json({
+router.get('/me', authenticateToken, async (req, res) => {
+    try {
+        if (!req.user) {
+            return res.json({
+                success: true,
+                user: null
+            });
+        }
+
+        const user = await authService.getCurrentUser(req.user.userId);
+        res.json({
+            success: true,
+            user: user ? user.toJSON() : null
+        });
+    } catch (error) {
+        console.error('Get current user error:', error);
+        res.json({
             success: true,
             user: null
         });
     }
-
-    res.json({
-        success: true,
-        user: req.user
-    });
 });
 
-// Logout
 router.post('/logout', authenticateToken, (req, res) => {
     res.json({
         success: true,

@@ -2,218 +2,124 @@ const express = require('express');
 const exphbs = require('express-handlebars');
 const path = require('path');
 const database = require('./config/database');
-const RestaurantService = require('./services/restaurantService');
 const hbsHelpers = require('./helpers/hbsHelpers');
-const { authenticateToken } = require('./middleware/auth');
-const authRoutes = require('./routes/auth');
+const authRouter = require('./routes/authRouter');
+const restaurantsRouter = require('./routes/restaurantsRouter');
+const RestaurantService = require('./services/RestaurantService');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-let restaurantService;
-
-// Initialize server
-async function startServer() {
-  try {
-    // Connect to database
-    const db = await database.connect();
-    
-    // Initialize restaurant service with cached data
-    restaurantService = new RestaurantService();
-    restaurantService.setDB(db);
-    
-    // Pre-cache neighborhoods and cuisines on startup
-    console.log('Pre-caching neighborhoods and cuisines...');
-    await Promise.all([
-      restaurantService.cacheNeighborhoods(),
-      restaurantService.cacheCuisines()
-    ]);
-    
-    console.log('Server started with pre-cached data');
-
-    // Handlebars setup with helpers
-    const hbs = exphbs.create({
-      extname: '.hbs',
-      defaultLayout: 'main',
-      layoutsDir: path.join(__dirname, 'views/layouts'),
-      partialsDir: path.join(__dirname, 'views/partials'),
-      helpers: hbsHelpers // Добавляем helpers
-    });
-
-    app.engine('hbs', hbs.engine);
-    app.set('view engine', 'hbs');
-    app.set('views', path.join(__dirname, 'views'));
-
-    // Static files
-    app.use(express.static(path.join(__dirname, 'public')));
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
-    app.use(authenticateToken);
-    app.use('/auth', authRoutes);
-
-    // Routes
-    app.get('/', async (req, res) => {
-      try {
-        console.log('GET / - Rendering page template');
+async function initializeApp() {
+    try {
+        const db = await database.connect();
+        const restaurantService = new RestaurantService(db);
         
-        const { neighborhood, cuisine, name, page = 1 } = req.query;
+        await Promise.all([
+            restaurantService.cacheNeighborhoods(),
+            restaurantService.cacheCuisines()
+        ]);
 
-        // Используем предзагруженные данные для фильтров
-        const neighborhoods = restaurantService.getNeighborhoods();
-        const cuisines = restaurantService.getCuisines();
+        app.locals.restaurantService = restaurantService;
 
-        // Рендерим страницу сразу, без ожидания данных ресторанов
-        res.render('home', {
-          title: 'NYC Restaurants',
-          restaurants: [], // Пустой массив - данные подгрузим через AJAX
-          neighborhoods: neighborhoods,
-          cuisines: cuisines,
-          filters: req.query,
-          pagination: {
-            currentPage: 1,
-            totalPages: 1,
-            hasNextPage: false
-          }
+        const hbs = exphbs.create({
+            extname: '.hbs',
+            defaultLayout: 'main',
+            layoutsDir: path.join(__dirname, 'views/layouts'),
+            partialsDir: path.join(__dirname, 'views/partials'),
+            helpers: hbsHelpers
         });
 
-      } catch (error) {
-        console.error('Error rendering page:', error);
-        // Простая обработка ошибки
-        res.send(`
-          <html>
-            <body style="font-family: Arial; padding: 20px;">
-              <h1>Error</h1>
-              <p>${error.message}</p>
-              <a href="/">Go Home</a>
-            </body>
-          </html>
-        `);
-      }
-    });
+        app.engine('hbs', hbs.engine);
+        app.set('view engine', 'hbs');
+        app.set('views', path.join(__dirname, 'views'));
 
-    // API endpoint для загрузки ресторанов
-    app.get('/api/restaurants', async (req, res) => {
-      try {
-        console.log('GET /api/restaurants - Loading restaurant data');
-        
-        const { neighborhood, cuisine, name, page = 1 } = req.query;
+        app.use(express.static(path.join(__dirname, 'public')));
+        app.use(express.json());
+        app.use(express.urlencoded({ extended: true }));
 
-        let restaurantsData;
-        
-        if (neighborhood) {
-          restaurantsData = await restaurantService.findRestaurantsInNeighborhood(
-            neighborhood, cuisine, name, parseInt(page)
-          );
-        } else {
-          restaurantsData = await restaurantService.findAllRestaurants(
-            cuisine, name, parseInt(page)
-          );
-        }
+        app.use('/auth', authRouter);
+        app.use('/api/restaurants', restaurantsRouter);
 
-        res.json({
-          success: true,
-          restaurants: restaurantsData.restaurants,
-          pagination: {
-            currentPage: restaurantsData.currentPage,
-            totalPages: restaurantsData.totalPages,
-            hasNextPage: restaurantsData.currentPage < restaurantsData.totalPages
-          }
-        });
-
-      } catch (error) {
-        console.error('Error loading restaurants API:', error);
-        res.status(500).json({
-          success: false,
-          message: 'Error loading restaurants: ' + error.message
-        });
-      }
-    });
-
-    app.get('/test', (req, res) => {
-      res.json({ status: 'ok', message: 'Server is working!' });
-    });
-
-    app.get('/health', (req, res) => {
-      res.json({ 
-        status: 'ok', 
-        database: 'connected',
-        neighborhoods: restaurantService.getNeighborhoods().length,
-        cuisines: restaurantService.getCuisines().length
-      });
-    });
-
-    // API endpoint to render restaurant cards HTML
-    app.get('/api/restaurants/html', async (req, res) => {
-        try {
-            console.log('GET /api/restaurants/html - Rendering restaurant cards');
-            
-            const { neighborhood, cuisine, name, page = 1 } = req.query;
-
-            let restaurantsData;
-            
-            if (neighborhood) {
-                restaurantsData = await restaurantService.findRestaurantsInNeighborhood(
-                    neighborhood, cuisine, name, parseInt(page), 13
-                );
-            } else {
-                restaurantsData = await restaurantService.findAllRestaurants(
-                    cuisine, name, parseInt(page), 13
-                );
+        app.get('/', async (req, res) => {
+            try {
+                const neighborhoods = restaurantService.getNeighborhoods();
+                const cuisines = restaurantService.getCuisines();
+                
+                const filters = {
+                    neighborhood: req.query.neighborhood || '',
+                    cuisine: req.query.cuisine || '',
+                    name: req.query.name || '',
+                    page: parseInt(req.query.page) || 1
+                };
+                
+                res.render('home', {
+                    title: 'NYC Restaurants Explorer',
+                    neighborhoods,
+                    cuisines,
+                    filters,
+                    query: req.query
+                });
+            } catch (error) {
+                console.error('Error rendering home:', error);
+                res.status(500).render('error', { message: error.message });
             }
+        });
 
-            // Подготавливаем данные для шаблона
-            const preparedRestaurants = restaurantsData.restaurants.map(restaurant => 
-                hbsHelpers.prepareRestaurant(restaurant)
-            );
+        app.get('/restaurants/:id', async (req, res) => {
+            try {
+                const { id } = req.params;
+                const restaurant = await restaurantService.findById(id);
 
-            // Проверяем есть ли еще данные
-            const hasMoreData = preparedRestaurants.length > 12;
-            const restaurantsToRender = hasMoreData ? preparedRestaurants.slice(0, 12) : preparedRestaurants;
+                if (!restaurant) {
+                    return res.status(404).render('error', { 
+                        message: 'Restaurant not found' 
+                    });
+                }
 
-            // Рендерим HTML
-            const html = await hbs.render(
-                path.join(__dirname, 'views/partials/restaurant-cards.hbs'),
-                { restaurants: restaurantsToRender }
-            );
+                res.render('restaurant-details', {
+                    title: restaurant.name,
+                    restaurant: restaurant.toJSON(),
+                });
+            } catch (error) {
+                console.error('Error rendering restaurant details:', error);
+                res.status(500).render('error', { message: error.message });
+            }
+        });
 
-            res.json({
-                success: true,
-                html: html,
-                hasMoreData: hasMoreData,
-                currentPage: restaurantsData.currentPage,
-                totalPages: restaurantsData.totalPages
+        app.get('/health', (req, res) => {
+            res.json({ 
+                status: 'ok', 
+                database: 'connected',
+                neighborhoods: restaurantService.getNeighborhoods().length,
+                cuisines: restaurantService.getCuisines().length
             });
+        });
 
-        } catch (error) {
-            console.error('Error rendering restaurant cards:', error);
-            res.status(500).json({
-                success: false,
-                message: 'Error rendering restaurants: ' + error.message
-            });
-        }
-    });
+        app.use((req, res) => {
+            res.status(404).render('error', { message: 'Page not found' });
+        });
 
-    // Simple 404 handler
-    app.use((req, res) => {
-      res.status(404).json({ error: 'Route not found' });
-    });
+        app.use((err, req, res, next) => {
+            console.error('Server error:', err);
+            res.status(500).render('error', { message: 'Internal server error' });
+        });
 
-    // Simple error handler
-    app.use((err, req, res, next) => {
-      console.error('Server error:', err);
-      res.status(500).json({ error: 'Internal server error' });
-    });
+        app.listen(PORT, () => {
+            console.log(`Server started on http://localhost:${PORT}`);
+        });
 
-    app.listen(PORT, () => {
-      console.log(`Server started on http://localhost:${PORT}`);
-    });
+        process.on('SIGTERM', async () => {
+            await database.close();
+            process.exit(0);
+        });
 
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
-  }
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
 }
 
-startServer();
+initializeApp();
 
 module.exports = app;
