@@ -18,11 +18,11 @@ module.exports = {
 
     getImageUrl: function(images, size = 'medium') {
         if (!images || images.length === 0) {
-            return '/images/restaurant-default.jpg';
+            return '/images/restaurant-default.png';
         }
         
         const mainImage = images.find(img => img.is_main) || images[0];
-        return mainImage[size + '_url'] || mainImage.url || '/images/restaurant-default.jpg';
+        return mainImage[size + '_url'] || mainImage.url || '/images/restaurant-default.png';
     },
 
     truncate: function(text, length = 100) {

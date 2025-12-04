@@ -1,195 +1,246 @@
-<div class="restaurant-details-container">
-    {{#if restaurant}}
-        <div class="restaurant-details-card">
-            <div class="restaurant-header">
-                <div class="action-buttons">
-                    <button class="btn btn-secondary btn-back">
-                        <i class="fas fa-arrow-left"></i> Back to List
+{{#if restaurant}}
+<div class="restaurant-details-card">
+    <!-- Header -->
+    <div class="restaurant-header">
+        <div class="action-buttons">
+            <button class="btn btn-secondary btn-back">
+                <i class="fas fa-arrow-left"></i> Back to List
+            </button>
+        </div>
+        <div class="restaurant-title">
+            <h1 class="restaurant-name">{{restaurant.name}}</h1>
+            <div class="restaurant-meta">
+                <span class="cuisine-badge large">{{restaurant.cuisine}}</span>
+                <span class="borough-badge">{{restaurant.borough}}</span>
+            </div>
+        </div>
+        <div class="restaurant-rating">
+            <div class="grade-display">
+                <span class="grade-label">Latest Grade</span>
+                <span class="grade-value grade-{{restaurant.latestGrade}}">{{restaurant.latestGrade}}</span>
+            </div>
+            <div class="score-display">
+                <span class="score-label">Score</span>
+                <span class="score-value">{{restaurant.latestScore}}/100</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Body -->
+    <div class="restaurant-body">
+        <div class="info-sections-grid">
+            <!-- Location Section -->
+            <div class="info-section location-section">
+                <div class="section-header">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <h3>Location</h3>
+                </div>
+                <div class="section-content">
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-road"></i> Address</span>
+                        <span class="info-value">{{restaurant.address.street}}, {{restaurant.address.building}}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-city"></i> Borough</span>
+                        <span class="info-value">{{restaurant.borough}}</span>
+                    </div>
+                    {{#if restaurant.address.zipcode}}
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-mail-bulk"></i> ZIP Code</span>
+                        <span class="info-value">{{restaurant.address.zipcode}}</span>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+            
+            <!-- Restaurant Info Section -->
+            <div class="info-section restaurant-info-section">
+                <div class="section-header">
+                    <i class="fas fa-info-circle"></i>
+                    <h3>Restaurant Information</h3>
+                </div>
+                <div class="section-content">
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-utensils"></i> Cuisine</span>
+                        <span class="info-value cuisine-text">{{restaurant.cuisine}}</span>
+                    </div>
+                    {{#if restaurant.latestInspectionDate}}
+                    <div class="info-row">
+                        <span class="info-label"><i class="fas fa-calendar-check"></i> Last Inspection</span>
+                        <span class="info-value">{{formatDate restaurant.latestInspectionDate}}</span>
+                    </div>
+                    {{/if}}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grades History -->
+        {{#if restaurant.grades.length}}
+        <div class="grades-history-section">
+            <div class="section-header">
+                <i class="fas fa-history"></i>
+                <h3>Inspection History</h3>
+            </div>
+            <div class="grades-table-container">
+                <table class="grades-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-calendar"></i> Date</th>
+                            <th><i class="fas fa-grade"></i> Grade</th>
+                            <th><i class="fas fa-chart-bar"></i> Score</th>
+                            <th><i class="fas fa-tag"></i> Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each restaurant.grades}}
+                        <tr>
+                            <td>{{formatDate this.date}}</td>
+                            <td>
+                                <span class="grade-badge grade-{{this.grade}}">
+                                    {{this.grade}}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="score-bar">
+                                    <div class="score-bar-fill" style="width: {{this.score}}%"></div>
+                                    <span class="score-text">{{this.score}}/100</span>
+                                </div>
+                            </td>
+                            <td>{{this.grade_type}}</td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+    
+    <!-- Footer -->
+    <div class="restaurant-footer">
+        
+        <!-- Map Section -->
+        {{#if restaurant.address.coord}}
+        <div class="map-section">
+            <div class="section-header">
+                <i class="fas fa-map-marked-alt"></i>
+                <h3>Location Map</h3>
+            </div>
+            
+            <div class="restaurant-map">
+                <iframe 
+                    width="100%" 
+                    height="300" 
+                    frameborder="0" 
+                    scrolling="no" 
+                    marginheight="0" 
+                    marginwidth="0"
+                    src="https://www.openstreetmap.org/export/embed.html?bbox={{restaurant.address.coord.[0]}}%2C{{restaurant.address.coord.[1]}}%2C{{restaurant.address.coord.[0]}}%2C{{restaurant.address.coord.[1]}}&layer=mapnik&marker={{restaurant.address.coord.[1]}}%2C{{restaurant.address.coord.[0]}}"
+                    style="border: 1px solid #ccc; border-radius: 8px;">
+                </iframe>
+            
+                <br/>
+                <small>
+                    <a class="btn-secondary" href="https://www.openstreetmap.org/?mlat={{restaurant.address.coord.[1]}}&amp;mlon={{restaurant.address.coord.[0]}}#map=17/{{restaurant.address.coord.[1]}}/{{restaurant.address.coord.[0]}}"
+                    target="_blank" rel="noopener">
+                        View Larger Map
+                    </a>
+                </small>
+            </div>
+            
+            <div class="coordinates">
+                <span class="coord-label">Coordinates:</span>
+                <span class="coord-value">{{restaurant.address.coord.[1]}}, {{restaurant.address.coord.[0]}}</span>
+            </div>
+        </div>
+        {{/if}}
+    </div>
+</div>
+
+<!-- Comments Section -->
+<div class="comments-section">
+    <div class="comments-header">
+        <h2><i class="fas fa-comments"></i> Comments</h2>
+    </div>
+    
+    <!-- Existing Comments -->
+    <div id="comments-container" class="comments-list">
+        <div class="loading-indicator">Loading comments...</div>
+    </div>
+    
+    <!-- Add Comment Form (only for authenticated users) -->
+    {{#if user}}
+    <div class="add-comment-form">
+        <h3>Add Your Comment</h3>
+        <form id="comment-form">
+            <div class="rating-input">
+                <label>Your Rating:</label>
+                <div class="stars-input">
+                    <button type="button" class="star-btn" data-rating="1">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="2">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="3">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="4">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button type="button" class="star-btn" data-rating="5">
+                        <i class="fas fa-star"></i>
                     </button>
                 </div>
-                <div class="restaurant-title">
-                    <h1>{{restaurant.name}}</h1>
-                    <div class="restaurant-meta">
-                        <span class="cuisine-badge large">{{restaurant.cuisine}}</span>
-                        <span class="borough-badge">{{restaurant.borough}}</span>
-                    </div>
-                </div>
-                <div class="restaurant-rating">
-                    <div class="grade-display">
-                        <span class="grade-label">Latest Grade</span>
-                        <span class="grade-value grade-{{restaurant.latestGrade}}">{{restaurant.latestGrade}}</span>
-                    </div>
-                    <div class="score-display">
-                        <span class="score-label">Score</span>
-                        <span class="score-value">{{restaurant.latestScore}}/100</span>
-                    </div>
-                </div>
+                <input type="hidden" id="comment-rating" name="rating" value="0">
             </div>
             
-            {{#if restaurant.thumbnail}}
-            <div class="restaurant-image">
-                <img src="{{restaurant.thumbnail}}" alt="{{restaurant.name}}" class="main-image">
-            </div>
-            {{/if}}
-            
-            <div class="restaurant-body">
-                <div class="info-sections-grid">
-                    <div class="info-section">
-                        <div class="section-header">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <h3>Location</h3>
-                        </div>
-                        <div class="section-content">
-                            <div class="info-row">
-                                <span class="info-label">Address</span>
-                                <span class="info-value">{{restaurant.address.street}}, {{restaurant.address.building}}</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Borough</span>
-                                <span class="info-value">{{restaurant.borough}}</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="info-section">
-                        <div class="section-header">
-                            <i class="fas fa-info-circle"></i>
-                            <h3>Information</h3>
-                        </div>
-                        <div class="section-content">
-                            <div class="info-row">
-                                <span class="info-label">Cuisine</span>
-                                <span class="info-value">{{restaurant.cuisine}}</span>
-                            </div>
-                            {{#if restaurant.phone}}
-                            <div class="info-row">
-                                <span class="info-label">Phone</span>
-                                <span class="info-value">{{restaurant.phone}}</span>
-                            </div>
-                            {{/if}}
-                        </div>
-                    </div>
-                </div>
-                
-                {{#if restaurant.grades.length}}
-                <div class="grades-history-section">
-                    <div class="section-header">
-                        <i class="fas fa-history"></i>
-                        <h3>Inspection History</h3>
-                    </div>
-                    <div class="grades-table-container">
-                        <table class="grades-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Grade</th>
-                                    <th>Score</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {{#each restaurant.grades}}
-                                <tr>
-                                    <td>{{formatDate this.date}}</td>
-                                    <td>
-                                        <span class="grade-badge grade-{{this.grade}}">
-                                            {{this.grade}}
-                                        </span>
-                                    </td>
-                                    <td>{{this.score}}/100</td>
-                                </tr>
-                                {{/each}}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                {{/if}}
-            </div>
-        </div>
-        
-        <div class="comments-section">
-            <div class="comments-header">
-                <h2><i class="fas fa-comments"></i> Comments</h2>
+            <div class="form-group">
+                <label for="comment-text">Your Comment:</label>
+                <textarea id="comment-text" name="text" 
+                        placeholder="Share your experience..." 
+                        minlength="10" 
+                        maxlength="1000" 
+                        required></textarea>
             </div>
             
-            <div id="comments-container" class="comments-list">
-                <!-- Comments will be loaded via JavaScript -->
+            <div class="form-actions">
+                <button type="submit" id="submit-comment" class="btn btn-primary">
+                    Submit Comment
+                </button>
             </div>
-            
-            <div id="load-more-comments" class="load-more-container" style="display: none;">
-                <button id="load-more-comments-btn" class="btn btn-secondary">Load More Comments</button>
-            </div>
-            
-            <div class="add-comment-form">
-                <h3>Add Your Comment</h3>
-                <form id="comment-form">
-                    <div class="rating-input">
-                        <label>Your Rating:</label>
-                        <div class="stars-input">
-                            <button type="button" class="star-btn auth-required" data-rating="1">
-                                <i class="fas fa-star"></i>
-                            </button>
-                            <button type="button" class="star-btn auth-required" data-rating="2">
-                                <i class="fas fa-star"></i>
-                            </button>
-                            <button type="button" class="star-btn auth-required" data-rating="3">
-                                <i class="fas fa-star"></i>
-                            </button>
-                            <button type="button" class="star-btn auth-required" data-rating="4">
-                                <i class="fas fa-star"></i>
-                            </button>
-                            <button type="button" class="star-btn auth-required" data-rating="5">
-                                <i class="fas fa-star"></i>
-                            </button>
-                        </div>
-                        <input type="hidden" id="comment-rating" name="rating" value="0">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="comment-text">Your Comment:</label>
-                        <textarea id="comment-text" name="text" 
-                                  placeholder="Share your experience..." 
-                                  class="auth-required" 
-                                  minlength="10" 
-                                  maxlength="1000" 
-                                  required></textarea>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" id="submit-comment" class="btn btn-primary auth-required">
-                            Submit Comment
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        
+        </form>
+    </div>
     {{else}}
-        <div class="restaurant-not-found">
-            <div class="not-found-content">
-                <i class="fas fa-exclamation-triangle fa-4x"></i>
-                <h2>Restaurant Not Found</h2>
-                <p>The restaurant you're looking for doesn't exist or has been removed.</p>
-                <div class="not-found-actions">
-                    <button class="btn btn-primary btn-back">
-                        <i class="fas fa-home"></i> Back to List
-                    </button>
-                </div>
+    <div class="login-prompt">
+        <div class="login-prompt-content">
+            <i class="fas fa-lock fa-3x"></i>
+            <h3>Authentication Required</h3>
+            <p>Please login to view and post comments about this restaurant.</p>
+            <div class="login-prompt-actions">
+                <button id="prompt-login-btn" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+                <button id="prompt-signup-btn" class="btn btn-secondary">
+                    <i class="fas fa-user-plus"></i> Sign Up
+                </button>
             </div>
         </div>
+    </div>
     {{/if}}
 </div>
 
-<script>
-    $(document).ready(function() {
-        // Store current URL when leaving list page
-        if (!window.location.pathname.includes('/restaurants/')) {
-            sessionStorage.setItem('restaurantListUrl', window.location.href);
-        }
-        
-        // Back button functionality
-        $('.btn-back').on('click', function() {
-            const backUrl = sessionStorage.getItem('restaurantListUrl') || '/';
-            window.location.href = backUrl;
-        });
-    });
-</script>
+{{else}}
+<div class="restaurant-not-found">
+    <div class="not-found-content">
+        <i class="fas fa-exclamation-triangle fa-4x"></i>
+        <h2>Restaurant Not Found</h2>
+        <p>The restaurant you're looking for doesn't exist or has been removed.</p>
+        <div class="not-found-actions">
+            <button class="btn btn-primary btn-back">
+                <i class="fas fa-home"></i> Back to Home
+            </button>
+        </div>
+    </div>
+</div>
+{{/if}}
