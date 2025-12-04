@@ -310,13 +310,6 @@ class RestaurantApp {
                         </div>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <button class="btn btn-rate auth-required" 
-                            data-restaurant-id="${restaurant._id}" 
-                            data-restaurant-name="${restaurant.name}">
-                        Rate This Restaurant
-                    </button>
-                </div>
             </div>
         `).join('');
     }
@@ -381,53 +374,6 @@ class RestaurantApp {
         `).join('');
         
         container.html(html);
-    }
-
-    async submitComment() {
-        if (!authService.isAuthenticated()) {
-            this.showAuthRequiredMessage();
-            return;
-        }
-        
-        const text = $('#comment-text').val().trim();
-        const rating = $('.star-btn.active').length;
-        
-        if (!text || text.length < 10) {
-            this.showMessage('Comment must be at least 10 characters', 'error');
-            return;
-        }
-        
-        if (rating < 1) {
-            this.showMessage('Please select a rating', 'error');
-            return;
-        }
-        
-        const submitBtn = $('#submit-comment');
-        submitBtn.prop('disabled', true).text('Submitting...');
-        
-        try {
-            const response = await $.ajax({
-                url: `/api/restaurants/${this.currentRestaurantId}/comments`,
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    text: text,
-                    rating: rating
-                })
-            });
-            
-            if (response.success) {
-                $('#comment-text').val('');
-                $('.star-btn').removeClass('active');
-                this.showMessage('Comment added successfully', 'success');
-                this.loadComments();
-            }
-        } catch (error) {
-            const errorMsg = error.responseJSON?.message || 'Failed to add comment';
-            this.showMessage(errorMsg, 'error');
-        } finally {
-            submitBtn.prop('disabled', false).text('Submit Comment');
-        }
     }
 
     showNoResults() {

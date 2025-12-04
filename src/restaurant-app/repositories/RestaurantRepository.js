@@ -43,7 +43,7 @@ class RestaurantRepository {
             const restaurantModels = restaurants.map(r => new Restaurant(r));
 
             return {
-                restaurants: restaurantModels.map(r => r.toJSON()).filter(r => r !== null),
+                restaurants: restaurantModels.map(r => r.toJSONForList()).filter(r => r !== null),
                 totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page
@@ -88,7 +88,7 @@ class RestaurantRepository {
             const restaurantModels = restaurants.map(r => new Restaurant(r));
 
             return {
-                restaurants: restaurantModels.map(r => r.toJSON()).filter(r => r !== null),
+                restaurants: restaurantModels.map(r => r.toJSONForList()).filter(r => r !== null),
                 totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page
@@ -98,7 +98,7 @@ class RestaurantRepository {
         }
     }
 
-    async findById(id) {
+    async findById(id, withComments = true) {
         try {
             let restaurant = null;
 
@@ -110,7 +110,13 @@ class RestaurantRepository {
 
             if (!restaurant) return null;
 
-            return new Restaurant(restaurant);
+            const restaurantModel = new Restaurant(restaurant);
+            
+            if (!withComments) {
+                return restaurantModel;
+            }
+            
+            return restaurantModel;
         } catch (error) {
             throw new Error(`Find restaurant by ID failed: ${error.message}`);
         }
@@ -149,7 +155,6 @@ class RestaurantRepository {
                 query.cuisine = filters.cuisine.trim();
             }
 
-            // Always exclude restaurants with empty names
             query.name = {
                 ...query.name,
                 $exists: true,
@@ -163,48 +168,53 @@ class RestaurantRepository {
         }
     }
 
-    async getSimilarRestaurants(restaurantId, limit = 4) {
+    async addComment(restaurantId, commentData) {
         try {
-            const restaurant = await this.findById(restaurantId);
-            if (!restaurant) return [];
-
-            const similar = await this.collection
-                .find({
-                    cuisine: restaurant.cuisine,
-                    borough: restaurant.borough,
-                    _id: { $ne: new ObjectId(restaurantId) }
-                })
-                .limit(limit)
-                .toArray();
-
-            return similar.map(r => new Restaurant(r).toJSON()).filter(r => r !== null);
-        } catch (error) {
-            throw new Error(`Get similar restaurants failed: ${error.message}`);
-        }
-    }
-
-    async update(id, updateData) {
-        try {
-            updateData.updated_at = new Date();
-            const result = await this.collection.updateOne(
-                { _id: new ObjectId(id) },
-                { $set: updateData }
-            );
-            return result.modifiedCount > 0;
-        } catch (error) {
-            throw new Error(`Update restaurant failed: ${error.message}`);
-        }
-    }
-
-    async addImage(restaurantId, imageData) {
-        try {
+            const commentId = new ObjectId();
+            
             const result = await this.collection.updateOne(
                 { _id: new ObjectId(restaurantId) },
-                { $push: { images: imageData } }
+                { 
+                    $push: { 
+                        comments: {
+                            _id: commentId,
+                            ...commentData,
+                            created_at: new Date(),
+                            updated_at: new Date()
+                        }
+                    },
+                    $set: { updated_at: new Date() }
+                }
             );
-            return result.modifiedCount > 0;
+
+            if (result.modifiedCount === 0) {
+                throw new Error('Failed to add comment');
+            }
+
+            return {
+                _id: commentId,
+                ...commentData,
+                created_at: new Date(),
+                updated_at: new Date()
+            };
         } catch (error) {
-            throw new Error(`Add image failed: ${error.message}`);
+            throw new Error(`Add comment failed: ${error.message}`);
+        }
+    }
+
+    async getRestaurantWithComments(id, page = 1, limit = 10) {
+        try {
+            const restaurant = await this.findById(id, true);
+            if (!restaurant) return null;
+
+            const commentsData = restaurant.getComments(page, limit);
+
+            return {
+                restaurant: restaurant.toJSON(),
+                comments: commentsData
+            };
+        } catch (error) {
+            throw new Error(`Get restaurant with comments failed: ${error.message}`);
         }
     }
 }

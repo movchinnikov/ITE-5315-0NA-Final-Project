@@ -1,12 +1,13 @@
 class Restaurant {
     constructor(data) {
         this._id = data._id;
-        this.name = data.name;
+        this.name = data.name || '';
         this.cuisine = data.cuisine;
         this.borough = data.borough;
         this.address = data.address || {};
         this.grades = data.grades || [];
         this.images = data.images || [];
+        this.comments = data.comments || [];
         this.description = data.description || '';
         this.website = data.website || '';
         this.phone = data.phone || '';
@@ -40,10 +41,54 @@ class Restaurant {
 
     getThumbnail() {
         const mainImg = this.getMainImage();
-        return mainImg ? mainImg.thumbnail_url : '/images/restaurant-default.png';
+        return mainImg ? mainImg.thumbnail_url : '/images/restaurant-default.jpg';
     }
 
+    getComments(page = 1, limit = 10) {
+        const start = (page - 1) * limit;
+        const end = start + limit;
+        const paginatedComments = this.comments.slice(start, end);
+        
+        return {
+            comments: paginatedComments,
+            total: this.comments.length,
+            totalPages: Math.ceil(this.comments.length / limit),
+            currentPage: page
+        };
+    }
+
+    getAverageRating() {
+        if (this.comments.length === 0) return 0;
+        const total = this.comments.reduce((sum, comment) => sum + (comment.rating || 0), 0);
+        return Math.round((total / this.comments.length) * 10) / 10;
+    }
+
+    toJSONForList() {
+        if (!this.hasValidName()) {
+            return null;
+        }
+        
+        return {
+            _id: this._id,
+            name: this.name,
+            cuisine: this.cuisine,
+            borough: this.borough,
+            address: this.address,
+            latestGrade: this.getLatestGrade(),
+            latestScore: this.getLatestScore(),
+            thumbnail: this.getThumbnail(),
+            description: this.description,
+            website: this.website,
+            phone: this.phone
+        };
+    }
+
+    // Метод для страницы ресторана (с комментариями)
     toJSON() {
+        if (!this.hasValidName()) {
+            return null;
+        }
+        
         return {
             _id: this._id,
             name: this.name,
@@ -56,7 +101,11 @@ class Restaurant {
             description: this.description,
             website: this.website,
             phone: this.phone,
-            images: this.images
+            images: this.images,
+            grades: this.grades,
+            comments: this.comments,
+            averageRating: this.getAverageRating(),
+            totalComments: this.comments.length
         };
     }
 }

@@ -1,11 +1,9 @@
 const express = require('express');
 const { authenticateToken, requireAuth } = require('../middleware/authMiddleware');
 const database = require('../config/database');
-const RestaurantService = require('../services/RestaurantService')
-const CommentRepository = require('../repositories/CommentRepository');
+const RestaurantService = require('../services/RestaurantService');
 
 const router = express.Router();
-const commentRepository = new CommentRepository();
 
 let restaurantService = null;
 
@@ -43,6 +41,47 @@ router.get('/', async (req, res) => {
                 hasNextPage: result.currentPage < result.totalPages
             }
         });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+router.get('/search', async (req, res) => {
+    try {
+        const service = await getRestaurantService();
+        const { 
+            q,
+            cuisine,
+            neighborhood,
+            page = 1
+        } = req.query;
+
+        if (q && !cuisine && !neighborhood) {
+            const result = await service.searchByName(q, parseInt(page));
+            
+            return res.json({
+                success: true,
+                ...result,
+                searchType: 'name'
+            });
+        }
+
+        const filters = {};
+        if (q) filters.name = q;
+        if (cuisine) filters.cuisine = cuisine;
+        if (neighborhood) filters.neighborhood = neighborhood;
+
+        const result = await service.searchWithFilters(filters, parseInt(page));
+        
+        res.json({
+            success: true,
+            ...result,
+            searchType: 'filters'
+        });
+
     } catch (error) {
         res.status(500).json({
             success: false,
