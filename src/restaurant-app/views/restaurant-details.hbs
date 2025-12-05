@@ -1,12 +1,12 @@
 {{#if restaurant}}
+<div class="action-buttons">
+    <button class="btn-link btn-secondary btn-back">
+        <i class="fas fa-arrow-left"></i> Back to List
+    </button>
+</div>
 <div class="restaurant-details-card">
     <!-- Header -->
     <div class="restaurant-header">
-        <div class="action-buttons">
-            <button class="btn btn-secondary btn-back">
-                <i class="fas fa-arrow-left"></i> Back to List
-            </button>
-        </div>
         <div class="restaurant-title">
             <h1 class="restaurant-name">{{restaurant.name}}</h1>
             <div class="restaurant-meta">
@@ -141,7 +141,7 @@
             
                 <br/>
                 <small>
-                    <a class="btn-secondary" href="https://www.openstreetmap.org/?mlat={{restaurant.address.coord.[1]}}&amp;mlon={{restaurant.address.coord.[0]}}#map=17/{{restaurant.address.coord.[1]}}/{{restaurant.address.coord.[0]}}"
+                    <a class="btn-link btn-secondary" href="https://www.openstreetmap.org/?mlat={{restaurant.address.coord.[1]}}&amp;mlon={{restaurant.address.coord.[0]}}#map=17/{{restaurant.address.coord.[1]}}/{{restaurant.address.coord.[0]}}"
                     target="_blank" rel="noopener">
                         View Larger Map
                     </a>
@@ -169,7 +169,7 @@
     </div>
     
     <!-- Add Comment Form (only for authenticated users) -->
-    {{#if user}}
+   <!-- {{#if user}} -->
     <div class="add-comment-form">
         <h3>Add Your Comment</h3>
         <form id="comment-form">
@@ -211,7 +211,7 @@
             </div>
         </form>
     </div>
-    {{else}}
+    <!-- {{else}}
     <div class="login-prompt">
         <div class="login-prompt-content">
             <i class="fas fa-lock fa-3x"></i>
@@ -226,21 +226,10 @@
                 </button>
             </div>
         </div>
-    </div>
-    {{/if}}
+    </div> 
+    {{/if}}-->
 </div>
 
 {{else}}
-<div class="restaurant-not-found">
-    <div class="not-found-content">
-        <i class="fas fa-exclamation-triangle fa-4x"></i>
-        <h2>Restaurant Not Found</h2>
-        <p>The restaurant you're looking for doesn't exist or has been removed.</p>
-        <div class="not-found-actions">
-            <button class="btn btn-primary btn-back">
-                <i class="fas fa-home"></i> Back to Home
-            </button>
-        </div>
-    </div>
-</div>
+    {{> no-found}}
 {{/if}}

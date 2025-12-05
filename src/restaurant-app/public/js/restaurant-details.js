@@ -16,13 +16,6 @@ class RestaurantDetails {
         // Back button
         $(document).on('click', '.btn-back', () => this.goBackToList());
         
-        // Rate restaurant button
-        $(document).on('click', '.btn-rate', (e) => {
-            const restaurantId = $(e.target).data('restaurant-id');
-            const restaurantName = $(e.target).data('restaurant-name');
-            this.showRatingModal(restaurantId, restaurantName);
-        });
-        
         // Star rating in comment form
         $(document).on('click', '.star-btn', function() {
             const rating = $(this).data('rating');
@@ -49,8 +42,19 @@ class RestaurantDetails {
     }
 
     goBackToList() {
-        const backUrl = sessionStorage.getItem('restaurantListUrl') || '/';
-        window.location.href = backUrl;
+        const referrer = document.referrer;
+        const currentPath = window.location.pathname;
+        
+        if (referrer && referrer.includes(window.location.origin)) {
+            const referrerPath = new URL(referrer).pathname;
+            if (referrerPath === '/' || referrerPath === '') {
+                window.history.back();
+            } else {
+                window.location.href = referrer;
+            }
+        } else {
+            window.location.href = '/';
+        }
     }
 
     async loadRestaurantData() {

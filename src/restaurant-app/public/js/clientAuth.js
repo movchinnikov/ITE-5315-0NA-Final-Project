@@ -165,7 +165,7 @@ class ClientAuth {
         $('#auth-submit-btn').text('Login');
         $('#auth-switch-text').text("Don't have an account?");
         $('#auth-switch-btn').text('Sign Up');
-        $('#confirm-password-group').hide();
+        $('#auth-confirm-password').hide();
         $('#auth-form')[0].reset();
         $('#auth-message').empty().removeClass('success error');
         $('#auth-modal').show();
@@ -176,7 +176,7 @@ class ClientAuth {
         $('#auth-submit-btn').text('Sign Up');
         $('#auth-switch-text').text('Already have an account?');
         $('#auth-switch-btn').text('Login');
-        $('#confirm-password-group').show();
+        $('#auth-confirm-password').show();
         $('#auth-form')[0].reset();
         $('#auth-message').empty().removeClass('success error');
         $('#auth-modal').show();

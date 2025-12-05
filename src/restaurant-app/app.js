@@ -7,6 +7,13 @@ const authRouter = require('./routes/authRouter');
 const restaurantsRouter = require('./routes/restaurantsRouter');
 const RestaurantService = require('./services/RestaurantService');
 
+try {
+    require('dotenv').config({ path: __dirname + '/.env' });
+    console.log('DEBUG: dotenv loaded from:', __dirname + '/.env');
+} catch (error) {
+    console.error('DEBUG: Failed to load dotenv with path:', error.message);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -72,9 +79,7 @@ async function initializeApp() {
                 const restaurant = await restaurantService.findById(id);
 
                 if (!restaurant) {
-                    return res.status(404).render('error', { 
-                        message: 'Restaurant not found' 
-                    });
+                    return res.status(404).render('not-found');
                 }
 
                 res.render('restaurant-details', {

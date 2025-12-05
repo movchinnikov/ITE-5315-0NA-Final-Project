@@ -1,6 +1,5 @@
 class RestaurantApp {
     constructor() {
-        this.currentPage = 1;
         this.isLoading = false;
         this.hasMoreData = true;
         this.currentFilters = {};
@@ -52,23 +51,6 @@ class RestaurantApp {
             }, 100);
         });
 
-        $(document).on('click', '.btn-rate', (e) => {
-            const restaurantId = $(e.target).data('restaurant-id');
-            const restaurantName = $(e.target).data('restaurant-name');
-            this.showRatingModal(restaurantId, restaurantName);
-        });
-
-        $('#comment-form').on('submit', (e) => {
-            e.preventDefault();
-            this.submitComment();
-        });
-
-        $('.close, #cancel-rating').on('click', this.closeRatingModal);
-        $('#rating-form').on('submit', (e) => this.submitRating(e));
-        $('#rating-score').on('input', (e) => {
-            $('#score-value').text(e.target.value);
-        });
-
         $(window).on('popstate', (e) => {
             if (e.originalEvent.state && e.originalEvent.state.filters) {
                 this.currentFilters = e.originalEvent.state.filters;
@@ -77,18 +59,13 @@ class RestaurantApp {
                 this.parseUrlFilters();
             }
         });
-
-        $(document).on('click', '.btn-back', (e) => {
-            e.preventDefault();
-            this.goBackToList();
-        });
     }
 
     parseUrlFilters() {
         const urlParams = new URLSearchParams(window.location.search);
         this.currentFilters = {};
         
-        const filters = ['neighborhood', 'cuisine', 'name', 'page'];
+        const filters = ['neighborhood', 'cuisine', 'name'];
         
         filters.forEach(filter => {
             const value = urlParams.get(filter);
@@ -98,7 +75,6 @@ class RestaurantApp {
         });
         
         this.updateFormFromFilters();
-        this.currentPage = parseInt(this.currentFilters.page) || 1;
     }
 
     updateFormFromFilters() {
@@ -125,9 +101,7 @@ class RestaurantApp {
             }
         });
         
-        newFilters.page = 1;
         this.currentFilters = newFilters;
-        this.currentPage = 1;
         
         const url = new URL(window.location);
         const params = new URLSearchParams();
@@ -158,34 +132,15 @@ class RestaurantApp {
         );
         
         this.currentFilters = {};
-        this.currentPage = 1;
         this.resetAndLoadRestaurants();
     }
 
     applyFiltersFromUrl() {
         this.updateFormFromFilters();
-        this.currentPage = parseInt(this.currentFilters.page) || 1;
         this.resetAndLoadRestaurants();
     }
 
-    goBackToList() {
-        const referrer = document.referrer;
-        const currentPath = window.location.pathname;
-        
-        if (referrer && referrer.includes(window.location.origin)) {
-            const referrerPath = new URL(referrer).pathname;
-            if (referrerPath === '/' || referrerPath === '') {
-                window.history.back();
-            } else {
-                window.location.href = referrer;
-            }
-        } else {
-            window.location.href = '/';
-        }
-    }
-
     resetAndLoadRestaurants() {
-        this.currentPage = this.currentFilters.page || 1;
         this.hasMoreData = true;
         $('#restaurants-container').empty();
         this.loadRestaurants();
@@ -205,8 +160,6 @@ class RestaurantApp {
     loadMoreRestaurants() {
         if (this.isLoading || !this.hasMoreData) return;
         
-        this.currentPage++;
-        this.currentFilters.page = this.currentPage;
         this.updateUrlWithCurrentPage();
         
         this.loadRestaurants(false);
@@ -215,8 +168,6 @@ class RestaurantApp {
     updateUrlWithCurrentPage() {
         const url = new URL(window.location);
         const params = new URLSearchParams(url.search);
-        
-        params.set('page', this.currentPage);
         
         const newUrl = `${url.pathname}?${params.toString()}`;
         
@@ -240,7 +191,6 @@ class RestaurantApp {
         }
 
         const loadData = { ...this.currentFilters };
-        loadData.page = this.currentPage;
         delete loadData.page;
         
         try {

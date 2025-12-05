@@ -77,29 +77,6 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
-router.get('/me', authenticateToken, async (req, res) => {
-    try {
-        if (!req.user) {
-            return res.json({
-                success: true,
-                user: null
-            });
-        }
-
-        const user = await authService.getCurrentUser(req.user.userId);
-        res.json({
-            success: true,
-            user: user ? user.toJSON() : null
-        });
-    } catch (error) {
-        console.error('Get current user error:', error);
-        res.json({
-            success: true,
-            user: null
-        });
-    }
-});
-
 router.post('/logout', authenticateToken, (req, res) => {
     res.json({
         success: true,
