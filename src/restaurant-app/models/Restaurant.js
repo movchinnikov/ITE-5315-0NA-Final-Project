@@ -41,7 +41,7 @@ class Restaurant {
 
     getThumbnail() {
         const mainImg = this.getMainImage();
-        return mainImg ? mainImg.thumbnail_url : '/images/restaurant-default.png';
+        return mainImg ? mainImg.url : '/images/restaurant-default.png';
     }
 
     getComments(page = 1, limit = 10) {
