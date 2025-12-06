@@ -5,6 +5,9 @@ class RestaurantApp {
         this.currentFilters = {};
         this.currentRestaurantId = null;
         this.commentsPage = 1;
+        this.currentPage = 1;
+        this.shouldScrollToPage = false;
+        this.targetPageElement = null;
         
         $(document).ready(() => {
             this.initialize();
@@ -15,8 +18,22 @@ class RestaurantApp {
         this.setupEventListeners();
         this.initializeStarRatings();
         this.parseUrlFilters();
-        this.loadRestaurants();
+        this.loadRestaurants().then(() => {
+            this.waitForPageRender().then(() => {
+                this.scrollToPageIfNeeded();
+            });
+        });
         this.updateCommentsSection();
+    }
+
+    waitForPageRender() {
+        return new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    resolve();
+                });
+            });
+        });
     }
 
     initializeStarRatings() {
@@ -39,8 +56,7 @@ class RestaurantApp {
             this.clearUrlFilters();
         });
 
-        $('#load-more').on('click', () => this.loadMoreRestaurants());
-
+        // Infinite scroll
         let scrollTimeout;
         $(window).on('scroll', () => {
             clearTimeout(scrollTimeout);
@@ -65,7 +81,7 @@ class RestaurantApp {
         const urlParams = new URLSearchParams(window.location.search);
         this.currentFilters = {};
         
-        const filters = ['neighborhood', 'cuisine', 'name'];
+        const filters = ['neighborhood', 'cuisine', 'name', 'page'];
         
         filters.forEach(filter => {
             const value = urlParams.get(filter);
@@ -73,6 +89,13 @@ class RestaurantApp {
                 this.currentFilters[filter] = value;
             }
         });
+        
+        this.currentPage = parseInt(this.currentFilters.page) || 1;
+        
+        if (this.currentPage !== 1) {
+            this.shouldScrollToPage = true;
+            this.targetPageElement = 'page-' + this.currentPage;
+        }
         
         this.updateFormFromFilters();
     }
@@ -91,7 +114,7 @@ class RestaurantApp {
         }
     }
 
-    updateUrlFromFilters() {
+    updateUrlFromFilters(page = 1) {
         const formData = $('#filters-form').serializeArray();
         const newFilters = {};
         
@@ -101,7 +124,14 @@ class RestaurantApp {
             }
         });
         
+        if (page > 1) {
+            newFilters.page = page;
+        } else {
+            delete newFilters.page;
+        }
+        
         this.currentFilters = newFilters;
+        this.currentPage = page;
         
         const url = new URL(window.location);
         const params = new URLSearchParams();
@@ -113,7 +143,7 @@ class RestaurantApp {
         const newUrl = `${url.pathname}?${params.toString()}`;
         
         window.history.pushState(
-            { filters: this.currentFilters },
+            { filters: this.currentFilters, page: this.currentPage },
             document.title,
             newUrl
         );
@@ -126,12 +156,13 @@ class RestaurantApp {
         const newUrl = url.pathname;
         
         window.history.pushState(
-            { filters: {} },
+            { filters: {}, page: 1 },
             document.title,
             newUrl
         );
         
         this.currentFilters = {};
+        this.currentPage = 1;
         this.resetAndLoadRestaurants();
     }
 
@@ -142,6 +173,7 @@ class RestaurantApp {
 
     resetAndLoadRestaurants() {
         this.hasMoreData = true;
+        this.currentPage = parseInt(this.currentFilters.page) || 1;
         $('#restaurants-container').empty();
         this.loadRestaurants();
     }
@@ -160,6 +192,7 @@ class RestaurantApp {
     loadMoreRestaurants() {
         if (this.isLoading || !this.hasMoreData) return;
         
+        this.currentPage++;
         this.updateUrlWithCurrentPage();
         
         this.loadRestaurants(false);
@@ -169,10 +202,16 @@ class RestaurantApp {
         const url = new URL(window.location);
         const params = new URLSearchParams(url.search);
         
+        if (this.currentPage > 1) {
+            params.set('page', this.currentPage);
+        } else {
+            params.delete('page');
+        }
+        
         const newUrl = `${url.pathname}?${params.toString()}`;
         
         window.history.replaceState(
-            { filters: this.currentFilters },
+            { filters: this.currentFilters, page: this.currentPage },
             document.title,
             newUrl
         );
@@ -183,6 +222,9 @@ class RestaurantApp {
         
         this.isLoading = true;
         
+        const startPage = clearExisting ? 1 : this.currentPage;
+        const totalPagesToLoad = this.shouldScrollToPage ? this.currentPage : 1;
+        
         if (clearExisting) {
             $('#load-more-container').hide();
             $('#loading-indicator').show();
@@ -191,40 +233,19 @@ class RestaurantApp {
         }
 
         const loadData = { ...this.currentFilters };
-        delete loadData.page;
+        if (!clearExisting) {
+            loadData.page = startPage;
+        }
         
         try {
-            const response = await $.get('/api/restaurants', loadData);
-            
-            if (response.success) {
-                $('.loading-indicator').remove();
-                
-                if (response.restaurants && response.restaurants.length > 0) {
-                    const html = this.renderRestaurants(response.restaurants);
-                    
-                    if (clearExisting) {
-                        $('#restaurants-container').html(html);
-                    } else {
-                        $('#restaurants-container').append(html);
-                    }
-                    
-                    this.hasMoreData = response.pagination.hasNextPage;
-                    
-                    if (this.hasMoreData) {
-                        $('#load-more-container').show();
-                    }
-                    
-                    if (this.hasMoreData && $(document).height() <= $(window).height()) {
-                        setTimeout(() => this.loadMoreRestaurants(), 500);
-                    }
-                } else if (clearExisting) {
-                    this.showNoResults();
-                    this.hasMoreData = false;
-                }
+            if (this.shouldScrollToPage && clearExisting) {
+                await this.loadMultiplePages(startPage, totalPagesToLoad);
+                this.shouldScrollToPage = false;
             } else {
-                this.showError(response.message);
-                this.hasMoreData = false;
+                const response = await $.get('/api/restaurants', loadData);
+                await this.processRestaurantsResponse(response, clearExisting);
             }
+            
         } catch (error) {
             console.error('Error loading restaurants:', error);
             this.showError('Failed to load restaurants. Please try again.');
@@ -232,14 +253,79 @@ class RestaurantApp {
         } finally {
             this.isLoading = false;
             $('#loading-indicator').hide();
-            $('#load-more').prop('disabled', false).text('Load More Restaurants');
+        }
+    }
+    
+    async loadMultiplePages(startPage, totalPages) {
+        let allRestaurants = [];
+        let hasMore = true;
+        
+        for (let page = startPage; page <= totalPages && hasMore; page++) {
+            try {
+                const loadData = { ...this.currentFilters, page: page };
+                const response = await $.get('/api/restaurants', loadData);
+                
+                if (response.success && response.restaurants && response.restaurants.length > 0) {
+                    allRestaurants = allRestaurants.concat(response.restaurants);
+                    hasMore = response.pagination.hasNextPage;
+                    
+                    const html = this.renderRestaurants(response.restaurants, page);
+                    $('#restaurants-container').append(html);
+                    
+                    this.currentPage = page;
+                    this.hasMoreData = hasMore;
+                } else {
+                    hasMore = false;
+                }
+            } catch (error) {
+                console.error(`Error loading page ${page}:`, error);
+                break;
+            }
+        }
+        
+        if (this.hasMoreData) {
+            $('#load-more-container').show();
+        }
+    }
+    
+    async processRestaurantsResponse(response, clearExisting) {
+        if (response.success) {
+            $('.loading-indicator').remove();
+            
+            if (response.restaurants && response.restaurants.length > 0) {
+                const html = this.renderRestaurants(response.restaurants, this.currentPage);
+                
+                if (clearExisting) {
+                    $('#restaurants-container').html(html);
+                } else {
+                    $('#restaurants-container').append(html);
+                }
+                
+                this.hasMoreData = response.pagination.hasNextPage;
+                
+                if (this.hasMoreData) {
+                    $('#load-more-container').show();
+                }
+                
+                if (this.hasMoreData && $(document).height() <= $(window).height()) {
+                    setTimeout(() => this.loadMoreRestaurants(), 500);
+                }
+            } else if (clearExisting) {
+                this.showNoResults();
+                this.hasMoreData = false;
+            }
+        } else {
+            this.showError(response.message);
+            this.hasMoreData = false;
         }
     }
 
-    renderRestaurants(restaurants) {
-        return restaurants.map(restaurant => `
-            <div class="restaurant-card" data-restaurant-id="${restaurant._id}">
-                <img src="${restaurant.thumbnail}" alt="${restaurant.name}" class="card-image">
+    renderRestaurants(restaurants, pageNumber = 1) {
+        const pageAnchor = pageNumber > 1 ? ` data-page-id="page-${pageNumber}"` : '';
+        
+        return restaurants.map((restaurant, index) => `
+            <div class="restaurant-card" data-restaurant-id="${restaurant._id}"${pageNumber > 1 && index === 0 ? pageAnchor : ''}>
+                ${restaurant.thumbnail ? `<img src="${restaurant.thumbnail}" alt="${restaurant.name}" class="card-image">` : ''}
                 <div class="card-content">
                     <div class="card-header">
                         <a href="/restaurants/${restaurant._id}" class="restaurant-name">${restaurant.name}</a>
@@ -252,16 +338,42 @@ class RestaurantApp {
                         </div>
                         <div class="info-item">
                             <span class="label">Latest Grade:</span>
-                            <span class="value grade-${restaurant.latestGrade.replace('/', '-')}">${restaurant.latestGrade}</span>
+                            <span class="value grade-${restaurant.latestGrade ? restaurant.latestGrade.replace('/', '-') : 'N/A'}">${restaurant.latestGrade || 'N/A'}</span>
                         </div>
                         <div class="info-item">
                             <span class="label">Latest Score:</span>
-                            <span class="value">${restaurant.latestScore}/100</span>
+                            <span class="value">${restaurant.latestScore || 'N/A'}/100</span>
                         </div>
                     </div>
                 </div>
             </div>
         `).join('');
+    }
+    
+    scrollToPageIfNeeded() {
+        if (this.currentPage !== 1) {
+            setTimeout(() => {
+                this.scrollToPage('page-' + this.currentPage);
+            }, 500);
+        }
+    }
+    
+    scrollToPage(pageId) {
+        const targetElement = $('[data-page-id="' + pageId + '"]');
+        if (targetElement.length) {
+            $('html, body').animate({
+                scrollTop: targetElement.offset().top
+            }, 500);
+        } else {
+            const pageNumber = parseInt(pageId.replace('#page-', ''));
+            if (pageNumber > this.currentPage) {
+                this.shouldScrollToPage = true;
+                this.targetPageElement = pageId;
+                this.currentFilters.page = pageNumber;
+                this.currentPage = 1;
+                this.resetAndLoadRestaurants();
+            }
+        }
     }
 
     updateCommentsSection() {
@@ -330,7 +442,7 @@ class RestaurantApp {
         $('#restaurants-container').html(`
             <div class="no-results">
                 <h3>No restaurants found</h3>
-                <p>Try adjusting your filters</p>
+                <p>Try adjusting your search criteria</p>
             </div>
         `);
     }
@@ -359,6 +471,19 @@ class RestaurantApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    generatePageLink(pageNumber) {
+        const url = new URL(window.location);
+        const params = new URLSearchParams(url.search);
+        
+        if (pageNumber > 1) {
+            params.set('page', pageNumber);
+        } else {
+            params.delete('page');
+        }
+        
+        return `${url.pathname}?${params.toString()}#page-${pageNumber}`;
     }
 }
 

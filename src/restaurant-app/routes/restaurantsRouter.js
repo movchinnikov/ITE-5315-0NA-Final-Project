@@ -16,35 +16,54 @@ const getRestaurantService = async () => {
             restaurantService.cacheCuisines()
         ]);
     }
+
     return restaurantService;
 };
 
 router.get('/', async (req, res) => {
     try {
-        const service = await getRestaurantService();
-        const { neighborhood, cuisine, name, page = 1 } = req.query;
-
-        let result;
+        console.log('GET /api/restaurants - Loading restaurant data');
         
+        const { neighborhood, cuisine, name, page = 1, limit = 12 } = req.query;
+
+        let restaurantsData;
+        
+        const restaurantService = await getRestaurantService();
+
         if (neighborhood) {
-            result = await service.findByNeighborhood(neighborhood, cuisine, name, parseInt(page));
+            restaurantsData = await restaurantService.findByNeighborhood(
+                neighborhood, 
+                cuisine, 
+                name, 
+                parseInt(page),
+                parseInt(limit)
+            );
         } else {
-            result = await service.findAll(cuisine, name, parseInt(page));
+            restaurantsData = await restaurantService.findAll(
+                cuisine, 
+                name, 
+                parseInt(page),
+                parseInt(limit)
+            );
         }
 
         res.json({
             success: true,
-            restaurants: result.restaurants,
+            restaurants: restaurantsData.restaurants,
             pagination: {
-                currentPage: result.currentPage,
-                totalPages: result.totalPages,
-                hasNextPage: result.currentPage < result.totalPages
+                currentPage: restaurantsData.currentPage,
+                totalPages: restaurantsData.totalPages,
+                hasNextPage: restaurantsData.currentPage < restaurantsData.totalPages,
+                totalCount: restaurantsData.totalCount,
+                pageSize: limit
             }
         });
+
     } catch (error) {
+        console.error('Error loading restaurants API:', error);
         res.status(500).json({
             success: false,
-            message: error.message
+            message: 'Error loading restaurants: ' + error.message
         });
     }
 });

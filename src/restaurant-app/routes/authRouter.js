@@ -77,6 +77,20 @@ router.post('/refresh', async (req, res) => {
     }
 });
 
+router.get('/me', authenticateToken, (req, res) => {
+    if (!req.user) {
+        return res.json({
+            success: true,
+            user: null
+        });
+    }
+
+    res.json({
+        success: true,
+        user: req.user
+    });
+});
+
 router.post('/logout', authenticateToken, (req, res) => {
     res.json({
         success: true,

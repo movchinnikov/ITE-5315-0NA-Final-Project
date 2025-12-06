@@ -31,43 +31,42 @@ class RestaurantService {
         return this.cachedCuisines || [];
     }
 
-    async findAll(cuisine, name, page = 1, limit = 12) {
+    async findAll(cuisine, restaurantName, page = 1, limit = 12) {
         try {
             const query = {};
 
-            if (cuisine) query.cuisine = cuisine;
-            if (name) query.name = { $regex: name, $options: 'i' };
-            
-            query.name = {
-                ...query.name,
-                $exists: true,
-                $ne: null,
-                $ne: ""
-            };
+            if (cuisine) {
+                query.cuisine = cuisine;
+            }
 
-            return await this.restaurantRepository.findAll(query, page, limit);
+            if (restaurantName) {
+                query.name = { $regex: restaurantName, $options: 'i' };
+            }
+
+            return await await this.restaurantRepository.findAll(query, page, limit);
+
         } catch (error) {
-            throw new Error(`Find restaurants failed: ${error.message}`);
+            console.error('Error finding all restaurants:', error);
+            throw error;
         }
     }
 
-    async findByNeighborhood(neighborhoodName, cuisine, name, page = 1, limit = 12) {
+    async findByNeighborhood(neighborhoodName, cuisine, restaurantName, page = 1, limit = 12) {
         try {
             const query = {};
 
-            if (cuisine) query.cuisine = cuisine;
-            if (name) query.name = { $regex: name, $options: 'i' };
-            
-            query.name = {
-                ...query.name,
-                $exists: true,
-                $ne: null,
-                $ne: ""
-            };
+            if (cuisine) {
+                query.cuisine = cuisine;
+            }
 
-            return await this.restaurantRepository.findByNeighborhood(neighborhoodName, query, page, limit);
+            if (restaurantName) {
+                query.name = { $regex: restaurantName, $options: 'i' };
+            }
+
+            return await await this.restaurantRepository.findByNeighborhood(neighborhoodName, query, page, limit);
         } catch (error) {
-            throw new Error(`Find restaurants by neighborhood failed: ${error.message}`);
+            console.error('Error finding restaurants in neighborhood:', error);
+            throw error;
         }
     }
 

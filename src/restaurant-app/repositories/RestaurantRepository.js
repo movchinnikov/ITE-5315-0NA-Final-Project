@@ -28,8 +28,20 @@ class RestaurantRepository {
 
     async findAll(query = {}, page = 1, limit = 12) {
         try {
-            const skip = (page - 1) * limit;
+            if (query.name !== undefined && query.name !== null) {
+                const nameValue = String(query.name).trim();
+                
+                if (nameValue === '') {
+                    query.name = { $exists: true, $ne: "" };
+                } else {
+                    query.name = { $regex: nameValue, $options: 'i' };
+                }
+            } else {
+                query.name = { $exists: true, $ne: "" };
+            }
 
+            const skip = (page - 1) * limit;
+            
             const [restaurants, totalCount] = await Promise.all([
                 this.collection
                     .find(query)
@@ -72,6 +84,18 @@ class RestaurantRepository {
             };
 
             const finalQuery = { ...geoQuery, ...query };
+
+            if (query.name !== undefined && query.name !== null) {
+                const nameValue = String(query.name).trim();
+                
+                if (nameValue === '') {
+                    query.name = { $exists: true, $ne: "" };
+                } else {
+                    query.name = { $regex: nameValue, $options: 'i' };
+                }
+            } else {
+                query.name = { $exists: true, $ne: "" };
+            }
 
             const skip = (page - 1) * limit;
 

@@ -176,6 +176,52 @@ textarea {
     color: #e55a2b;
 }
 
+.page-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+}
+
+.page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #2a2a2a;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.page-link:hover {
+    background: #ff6b35;
+    border-color: #ff6b35;
+    transform: translateY(-2px);
+}
+
+.page-link.active {
+    background: #ff6b35;
+    border-color: #ff6b35;
+}
+
+.page-link.ellipsis {
+    background: transparent;
+    border: none;
+    width: auto;
+    cursor: default;
+}
+
+.page-link.ellipsis:hover {
+    background: transparent;
+    transform: none;
+}
+
 .restaurants-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -197,6 +243,20 @@ textarea {
 .restaurant-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.restaurant-card[id^="page-"] {
+    position: relative;
+}
+
+.restaurant-card[id^="page-"]:before {
+    content: "";
+    position: absolute;
+    top: -50px;
+    left: 0;
+    width: 100%;
+    height: 50px;
+    display: block;
 }
 
 .card-image {

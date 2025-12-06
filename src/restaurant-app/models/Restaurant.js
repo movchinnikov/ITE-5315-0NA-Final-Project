@@ -83,7 +83,6 @@ class Restaurant {
         };
     }
 
-    // Метод для страницы ресторана (с комментариями)
     toJSON() {
         if (!this.hasValidName()) {
             return null;
