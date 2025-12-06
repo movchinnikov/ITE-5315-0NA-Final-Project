@@ -3,13 +3,13 @@ const UserRepository = require('../repositories/UserRepository');
 
 class AuthService {
     constructor() {
-        this.accessTokenSecret = process.env.JWT_ACCESS_SECRET || 'access_secret';
-        this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'refresh_secret';
+        this.accessTokenSecret = process.env.JWT_ACCESS_SECRET || 'jwt-access-secret';
+        this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || 'jwt-refresh-secret';
         this.userRepository = new UserRepository();
     }
 
     generateAccessToken(user) {
-        return jwt.sign(
+        var token = jwt.sign(
             { 
                 userId: user._id.toString(), 
                 username: user.username,
@@ -18,6 +18,9 @@ class AuthService {
             this.accessTokenSecret,
             { expiresIn: '15m' }
         );
+        console.log(token);
+        console.log(this.accessTokenSecret);
+        return token;
     }
 
     generateRefreshToken(user) {
@@ -87,6 +90,8 @@ class AuthService {
 
     verifyAccessToken(token) {
         try {
+            console.log(token);
+            console.log(this.accessTokenSecret);
             return jwt.verify(token, this.accessTokenSecret);
         } catch (error) {
             throw new Error('Invalid access token');

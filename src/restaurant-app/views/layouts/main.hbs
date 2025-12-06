@@ -18,7 +18,10 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/js/clientAuth.js"></script>
-    <script src="/js/main.js"></script>
+
+    {{#if isIndex }}
+    <script src="/js/index.js"></script>
+    {{/if}}
     
     {{#if restaurant}}
     <script src="/js/restaurant-details.js"></script>

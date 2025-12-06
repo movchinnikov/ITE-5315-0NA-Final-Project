@@ -1,8 +1,13 @@
+//const { render } = require("../../app");
+
 class ClientAuth {
     constructor() {
+        this.loadCurrentUser();
+
         this.accessToken = localStorage.getItem('accessToken');
         this.refreshToken = localStorage.getItem('refreshToken');
         this.user = JSON.parse(localStorage.getItem('user') || 'null');
+
         this.initializeEventHandlers();
     }
 
@@ -18,7 +23,6 @@ class ClientAuth {
             
             this.setupAjaxInterceptors();
             this.updateUI();
-            this.loadCurrentUser();
         });
     }
 

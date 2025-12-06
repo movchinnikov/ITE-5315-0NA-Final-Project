@@ -162,35 +162,62 @@
     <div class="comments-header">
         <h2><i class="fas fa-comments"></i> Comments</h2>
     </div>
-    
+
     <!-- Existing Comments -->
     <div id="comments-container" class="comments-list">
-        <div class="loading-indicator">Loading comments...</div>
+        
+        {{#if restaurant.comments}}
+            {{#if restaurant.comments.length}}
+                {{#each restaurant.comments}}
+                    <div class="comment-card">
+                        <div class="comment-header">
+                            <span class="comment-author">
+                                <i class="fas fa-user"></i> {{this.username}}
+                            </span>
+                            
+                            <span class="comment-rating">
+                                {{stars this.rating}}
+                            </span>
+                        </div>
+
+                        <div class="comment-body">
+                            <p>{{this.text}}</p>
+                        </div>
+
+                        <div class="comment-footer">
+                            <span class="comment-date">
+                                {{formatDate this.created_at}}
+                            </span>
+                        </div>
+                    </div>
+                {{/each}}
+
+            {{else}}
+                <div class="no-results">
+                    <p>No comments yet. Be the first to comment!</p>
+                </div>
+            {{/if}}
+
+        {{else}}
+            <div class="no-results">
+                <p>No comments yet. Be the first to comment!</p>
+            </div>
+
+        {{/if}}
     </div>
-    
-    <!-- Add Comment Form (only for authenticated users) -->
-   <!-- {{#if user}} -->
+
+    <!-- Add Comment Form -->
     <div class="add-comment-form">
         <h3>Add Your Comment</h3>
         <form id="comment-form">
             <div class="rating-input">
                 <label>Your Rating:</label>
                 <div class="stars-input">
-                    <button type="button" class="star-btn" data-rating="1">
-                        <i class="fas fa-star"></i>
-                    </button>
-                    <button type="button" class="star-btn" data-rating="2">
-                        <i class="fas fa-star"></i>
-                    </button>
-                    <button type="button" class="star-btn" data-rating="3">
-                        <i class="fas fa-star"></i>
-                    </button>
-                    <button type="button" class="star-btn" data-rating="4">
-                        <i class="fas fa-star"></i>
-                    </button>
-                    <button type="button" class="star-btn" data-rating="5">
-                        <i class="fas fa-star"></i>
-                    </button>
+                    <button type="button" class="star-btn" data-rating="1"><i class="fas fa-star"></i></button>
+                    <button type="button" class="star-btn" data-rating="2"><i class="fas fa-star"></i></button>
+                    <button type="button" class="star-btn" data-rating="3"><i class="fas fa-star"></i></button>
+                    <button type="button" class="star-btn" data-rating="4"><i class="fas fa-star"></i></button>
+                    <button type="button" class="star-btn" data-rating="5"><i class="fas fa-star"></i></button>
                 </div>
                 <input type="hidden" id="comment-rating" name="rating" value="0">
             </div>
@@ -198,12 +225,12 @@
             <div class="form-group">
                 <label for="comment-text">Your Comment:</label>
                 <textarea id="comment-text" name="text" 
-                        placeholder="Share your experience..." 
-                        minlength="10" 
-                        maxlength="1000" 
-                        required></textarea>
+                    placeholder="Share your experience..." 
+                    minlength="10" 
+                    maxlength="1000" 
+                    required></textarea>
             </div>
-            
+
             <div class="form-actions">
                 <button type="submit" id="submit-comment" class="btn btn-primary">
                     Submit Comment
@@ -211,24 +238,8 @@
             </div>
         </form>
     </div>
-    <!-- {{else}}
-    <div class="login-prompt">
-        <div class="login-prompt-content">
-            <i class="fas fa-lock fa-3x"></i>
-            <h3>Authentication Required</h3>
-            <p>Please login to view and post comments about this restaurant.</p>
-            <div class="login-prompt-actions">
-                <button id="prompt-login-btn" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </button>
-                <button id="prompt-signup-btn" class="btn btn-secondary">
-                    <i class="fas fa-user-plus"></i> Sign Up
-                </button>
-            </div>
-        </div>
-    </div> 
-    {{/if}}-->
 </div>
+
 
 {{else}}
     {{> no-found}}

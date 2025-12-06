@@ -3,35 +3,36 @@ class RestaurantDetails {
         this.restaurantId = null;
         this.userAuthenticated = false;
         this.comments = [];
-        
+
         this.initialize();
     }
 
     initialize() {
         this.setupEventListeners();
         this.loadRestaurantData();
+        this.loadComments();
+
+        // FIX: корректное определение аутентификации
+        if (typeof authService !== 'undefined' && typeof authService.isAuthenticated === 'function') {
+            this.userAuthenticated = authService.isAuthenticated();
+        } else {
+            this.userAuthenticated = false;
+        }
     }
 
     setupEventListeners() {
-        // Back button
         $(document).on('click', '.btn-back', () => this.goBackToList());
-        
-        // Star rating in comment form
-        $(document).on('click', '.star-btn', function() {
+
+        $(document).on('click', '.star-btn', function () {
             const rating = $(this).data('rating');
             $(this).parent().find('.star-btn').removeClass('active');
             $(this).prevAll('.star-btn').addBack().addClass('active');
-            $(this).closest('.rating-input').find('input[name="rating"]').val(rating);
+            $('#comment-rating').val(rating);
         });
-        
-        // Comment form submission
-        $('#comment-form').on('submit', (e) => this.submitComment(e));
-        
-        // Login prompt buttons
-        $('#prompt-login-btn').on('click', () => $('#login-btn').click());
-        $('#prompt-signup-btn').on('click', () => $('#signup-btn').click());
-        
-        // Store current URL when not on restaurant details page
+
+        // IMPORTANT: Delegate event (form re-renders)
+        $(document).on('submit', '#comment-form', (e) => this.submitComment(e));
+
         this.storeReferrerUrl();
     }
 
@@ -43,46 +44,28 @@ class RestaurantDetails {
 
     goBackToList() {
         const referrer = document.referrer;
-        const currentPath = window.location.pathname;
-        
+
         if (referrer && referrer.includes(window.location.origin)) {
-            const referrerPath = new URL(referrer).pathname;
-            if (referrerPath === '/' || referrerPath === '') {
-                window.history.back();
-            } else {
-                window.location.href = referrer;
-            }
+            window.location.href = referrer;
         } else {
             window.location.href = '/';
         }
     }
 
     async loadRestaurantData() {
-        // Extract restaurant ID from URL
-        const path = window.location.pathname;
-        const match = path.match(/\/restaurants\/([^/]+)/);
-        
+        const match = window.location.pathname.match(/\/restaurants\/([^/]+)/);
+
         if (match) {
             this.restaurantId = match[1];
-            
-            // Check if user is authenticated
-            if (typeof authService !== 'undefined') {
-                this.userAuthenticated = authService.isAuthenticated();
-                
-                // Load comments if user is authenticated
-                if (this.userAuthenticated) {
-                    await this.loadComments();
-                }
-            }
         }
     }
 
     async loadComments() {
         if (!this.restaurantId) return;
-        
+
         try {
             const response = await $.get(`/api/restaurants/${this.restaurantId}`);
-            
+
             if (response.success && response.comments) {
                 this.comments = response.comments.comments || [];
                 this.renderComments();
@@ -99,81 +82,103 @@ class RestaurantDetails {
 
     renderComments() {
         const container = $('#comments-container');
-        
+        container.empty();
+
         if (this.comments.length === 0) {
-            container.html(`
+            container.append(`
                 <div class="no-results">
                     <p>No comments yet. Be the first to comment!</p>
                 </div>
             `);
             return;
         }
-        
-        const html = this.comments.map(comment => `
+
+        for (const comment of this.comments) {
+            container.append(this.renderCommentHtml(comment));
+        }
+    }
+
+    renderCommentHtml(comment) {
+        return `
             <div class="comment-card" data-comment-id="${comment._id}">
                 <div class="comment-header">
                     <div class="comment-author">
-                        <img src="${comment.avatar || '/images/user-default.png'}" alt="${comment.username}" class="author-avatar">
+                        <img src="${comment.avatar || '/images/user-default.png'}"
+                             alt="${comment.username}"
+                             class="author-avatar">
                         <div class="author-info">
                             <h4>${comment.username}</h4>
-                            <span class="comment-date">${new Date(comment.created_at).toLocaleDateString()}</span>
+                            <span class="comment-date">
+                                ${new Date(comment.created_at).toLocaleDateString()}
+                            </span>
                         </div>
                     </div>
-                    ${comment.rating ? `<div class="comment-rating">${'★'.repeat(comment.rating)}${'☆'.repeat(5-comment.rating)}</div>` : ''}
+                    ${comment.rating ? `
+                        <div class="comment-rating">
+                            ${'★'.repeat(comment.rating)}${'☆'.repeat(5 - comment.rating)}
+                        </div>` : ''}
                 </div>
                 <div class="comment-text">${this.escapeHtml(comment.text)}</div>
             </div>
-        `).join('');
-        
-        container.html(html);
+        `;
+    }
+
+    appendSingleComment(comment) {
+        const container = $('#comments-container');
+
+        // Remove "No comments yet"
+        container.find('.no-results').remove();
+
+        // Append comment HTML
+        container.append(this.renderCommentHtml(comment));
     }
 
     async submitComment(e) {
         e.preventDefault();
-        
+
         if (!this.userAuthenticated) {
             this.showMessage('Please login to post comments', 'error');
             $('#login-btn').click();
             return;
         }
-        
+
         const text = $('#comment-text').val().trim();
-        const rating = $('#comment-rating').val();
-        
-        if (!text || text.length < 10) {
+        const rating = parseInt($('#comment-rating').val());
+
+        if (text.length < 10) {
             this.showMessage('Comment must be at least 10 characters', 'error');
             return;
         }
-        
+
         if (rating < 1) {
             this.showMessage('Please select a rating', 'error');
             return;
         }
-        
+
         const submitBtn = $('#submit-comment');
         submitBtn.prop('disabled', true).text('Submitting...');
-        
+
         try {
             const response = await $.ajax({
                 url: `/api/restaurants/${this.restaurantId}/comments`,
                 method: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({
-                    text: text,
-                    rating: parseInt(rating)
-                })
+                data: JSON.stringify({ text, rating })
             });
-            
+
             if (response.success) {
-                $('#comment-text').val('');
-                $('.star-btn').removeClass('active');
-                $('#comment-rating').val(0);
                 this.showMessage('Comment added successfully!', 'success');
-                await this.loadComments();
+
+                this.appendSingleComment(response.comment);
+
+                // Reset form
+                $('#comment-text').val('');
+                $('#comment-rating').val(0);
+                $('.star-btn').removeClass('active');
             }
         } catch (error) {
-            const errorMsg = error.responseJSON?.message || 'Failed to add comment';
-            this.showMessage(errorMsg, 'error');
+            const msg = error.responseJSON?.message || 'Failed to add comment';
+            this.showMessage(msg, 'error');
         } finally {
             submitBtn.prop('disabled', false).text('Submit Comment');
         }
@@ -190,30 +195,10 @@ class RestaurantDetails {
         div.textContent = text;
         return div.innerHTML;
     }
-
-    updateAuthStatus() {
-        if (typeof authService !== 'undefined') {
-            this.userAuthenticated = authService.isAuthenticated();
-            
-            // Reload comments if user just logged in
-            if (this.userAuthenticated) {
-                this.loadComments();
-            }
-        }
-    }
 }
 
-// Initialize restaurant details when document is ready
-$(document).ready(function() {
-    // Only initialize on restaurant details pages
+$(document).ready(function () {
     if (window.location.pathname.includes('/restaurants/')) {
         window.restaurantDetails = new RestaurantDetails();
-    }
-});
-
-// Listen for auth status changes
-$(document).on('authStatusChanged', function() {
-    if (window.restaurantDetails) {
-        window.restaurantDetails.updateAuthStatus();
     }
 });

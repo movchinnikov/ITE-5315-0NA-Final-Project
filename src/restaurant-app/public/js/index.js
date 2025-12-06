@@ -16,14 +16,12 @@ class RestaurantApp {
 
     initialize() {
         this.setupEventListeners();
-        this.initializeStarRatings();
         this.parseUrlFilters();
         this.loadRestaurants().then(() => {
             this.waitForPageRender().then(() => {
                 this.scrollToPageIfNeeded();
             });
         });
-        this.updateCommentsSection();
     }
 
     waitForPageRender() {
@@ -33,15 +31,6 @@ class RestaurantApp {
                     resolve();
                 });
             });
-        });
-    }
-
-    initializeStarRatings() {
-        $(document).on('click', '.star-btn', function() {
-            const rating = $(this).data('rating');
-            $(this).parent().find('.star-btn').removeClass('active');
-            $(this).prevAll('.star-btn').addBack().addClass('active');
-            $(this).closest('.rating-input').find('input[name="rating"]').val(rating);
         });
     }
 
@@ -374,68 +363,6 @@ class RestaurantApp {
                 this.resetAndLoadRestaurants();
             }
         }
-    }
-
-    updateCommentsSection() {
-        const path = window.location.pathname;
-        const match = path.match(/\/restaurants\/([^/]+)/);
-        
-        if (match) {
-            this.currentRestaurantId = match[1];
-            this.loadComments();
-        }
-    }
-
-    async loadComments() {
-        if (!this.currentRestaurantId) return;
-        
-        try {
-            const response = await $.get(`/api/restaurants/${this.currentRestaurantId}?page=${this.commentsPage}`);
-            
-            if (response.success && response.comments) {
-                this.renderComments(response.comments);
-                
-                if (response.comments.totalPages > this.commentsPage) {
-                    $('#load-more-comments').show();
-                } else {
-                    $('#load-more-comments').hide();
-                }
-            }
-        } catch (error) {
-            console.log('Failed to load comments');
-        }
-    }
-
-    renderComments(commentsData) {
-        const container = $('#comments-container');
-        const comments = commentsData.comments || [];
-        
-        if (comments.length === 0) {
-            container.html('<div class="no-results"><p>No comments yet. Be the first to comment!</p></div>');
-            return;
-        }
-        
-        const html = comments.map(comment => `
-            <div class="comment-card" data-comment-id="${comment._id}">
-                <div class="comment-header">
-                    <div class="comment-author">
-                        <img src="${comment.avatar || '/images/user-default.png'}" alt="${comment.username}" class="author-avatar">
-                        <div class="author-info">
-                            <h4>${comment.username}</h4>
-                            <span class="comment-date">${new Date(comment.created_at).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    ${comment.rating ? `<div class="comment-rating">${'★'.repeat(comment.rating)}${'☆'.repeat(5-comment.rating)}</div>` : ''}
-                </div>
-                <div class="comment-text">${this.escapeHtml(comment.text)}</div>
-                <div class="comment-actions">
-                    ${comment.can_edit ? '<button class="edit-btn">Edit</button>' : ''}
-                    ${comment.can_delete ? '<button class="delete-btn">Delete</button>' : ''}
-                </div>
-            </div>
-        `).join('');
-        
-        container.html(html);
     }
 
     showNoResults() {

@@ -61,6 +61,7 @@ async function initializeApp() {
                 };
                 
                 res.render('home', {
+                    isIndex: true,
                     title: 'NYC Restaurants Explorer',
                     neighborhoods,
                     cuisines,

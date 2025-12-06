@@ -656,9 +656,14 @@ textarea {
     color: #ffffff;
 }
 
-.author-info .comment-date {
+.author-info {
     color: #b0b0b0;
     font-size: 0.8rem;
+}
+
+.comment-date {
+    color: #b4b4b4;
+    font-size: 0.6rem;
 }
 
 .comment-rating {
