@@ -32,7 +32,7 @@ class Restaurant {
     getLatestScore() {
         if (!this.grades || this.grades.length === 0) return 0;
         const sorted = [...this.grades].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
-        return sorted[0].score || 0;
+        return sorted[0].score ? sorted[0].score + '/100' : 0;
     }
 
     getMainImage() {

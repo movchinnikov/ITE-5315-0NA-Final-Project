@@ -331,7 +331,7 @@ class RestaurantApp {
                         </div>
                         <div class="info-item">
                             <span class="label">Latest Score:</span>
-                            <span class="value">${restaurant.latestScore || 'N/A'}/100</span>
+                            <span class="value">${restaurant.latestScore || 'N/A'}</span>
                         </div>
                         <div class="info-item">
                             <span class="label">Number of comments:</span>
