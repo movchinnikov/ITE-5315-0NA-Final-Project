@@ -1,0 +1,19 @@
+<div class="restaurant-header">
+    <div class="restaurant-title">
+        <h1 class="restaurant-name">{{restaurant.name}}</h1>
+        <div class="restaurant-meta">
+            <span class="cuisine-badge large">{{restaurant.cuisine}}</span>
+            <span class="borough-badge">{{restaurant.borough}}</span>
+        </div>
+    </div>
+    <div class="restaurant-rating">
+        <div class="grade-display">
+            <span class="grade-label">Latest Grade</span>
+            <span class="grade-value grade-{{restaurant.latestGrade}}">{{restaurant.latestGrade}}</span>
+        </div>
+        <div class="score-display">
+            <span class="score-label">Score</span>
+            <span class="score-value">{{restaurant.latestScore}}</span>
+        </div>
+    </div>
+</div>

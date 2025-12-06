@@ -1,0 +1,32 @@
+<div class="comment-card" data-comment-id="{{comment._id}}" data-user-id="{{comment.user_id}}">
+    <div class="comment-header">
+        <span class="comment-author">
+            <i class="fas fa-user"></i> {{comment.username}}
+        </span>
+        
+        <div class="comment-rating">
+            {{stars comment.rating}}
+        </div>
+
+        {{#if (equals comment.user_id userId)}}
+        <div class="comment-actions">
+            <button class="btn-icon btn-edit-comment" title="Edit comment">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn-icon btn-delete-comment" title="Delete comment">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        {{/if}}
+    </div>
+
+    <div class="comment-body">
+        <p class="comment-text">{{comment.text}}</p>
+    </div>
+
+    <div class="comment-footer">
+        <span class="comment-date">
+            {{formatDate comment.created_at}}
+        </span>
+    </div>
+</div>

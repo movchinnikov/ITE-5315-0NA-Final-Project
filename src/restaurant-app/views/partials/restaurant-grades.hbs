@@ -1,0 +1,39 @@
+{{#if restaurant.grades.length}}
+<div class="grades-history-section">
+    <div class="section-header">
+        <i class="fas fa-history"></i>
+        <h3>Inspection History</h3>
+    </div>
+    <div class="grades-table-container">
+        <table class="grades-table">
+            <thead>
+                <tr>
+                    <th><i class="fas fa-calendar"></i> Date</th>
+                    <th><i class="fas fa-grade"></i> Grade</th>
+                    <th><i class="fas fa-chart-bar"></i> Score</th>
+                    <th><i class="fas fa-tag"></i> Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each restaurant.grades}}
+                <tr>
+                    <td>{{formatDate this.date}}</td>
+                    <td>
+                        <span class="grade-badge grade-{{this.grade}}">
+                            {{this.grade}}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="score-bar">
+                            <div class="score-bar-fill" style="width: {{this.score}}%"></div>
+                            <span class="score-text">{{this.score}}/100</span>
+                        </div>
+                    </td>
+                    <td>{{this.grade_type}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+</div>
+{{/if}}

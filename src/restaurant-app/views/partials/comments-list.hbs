@@ -1,0 +1,17 @@
+<div id="comments-container" class="comments-list">
+    {{#if restaurant.comments}}
+        {{#if restaurant.comments.length}}
+            {{#each restaurant.comments}}
+                {{> comment-card comment=this userId=../userId}}
+            {{/each}}
+        {{else}}
+            <div class="no-results">
+                <p>No comments yet. Be the first to comment!</p>
+            </div>
+        {{/if}}
+    {{else}}
+        <div class="no-results">
+            <p>No comments yet. Be the first to comment!</p>
+        </div>
+    {{/if}}
+</div>

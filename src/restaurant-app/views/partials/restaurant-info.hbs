@@ -1,0 +1,18 @@
+<div class="info-section restaurant-info-section">
+    <div class="section-header">
+        <i class="fas fa-info-circle"></i>
+        <h3>Restaurant Information</h3>
+    </div>
+    <div class="section-content">
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-utensils"></i> Cuisine</span>
+            <span class="info-value cuisine-text">{{restaurant.cuisine}}</span>
+        </div>
+        {{#if restaurant.latestInspectionDate}}
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-calendar-check"></i> Last Inspection</span>
+            <span class="info-value">{{formatDate restaurant.latestInspectionDate}}</span>
+        </div>
+        {{/if}}
+    </div>
+</div>

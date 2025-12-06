@@ -1,0 +1,22 @@
+<div class="info-section location-section">
+    <div class="section-header">
+        <i class="fas fa-map-marker-alt"></i>
+        <h3>Location</h3>
+    </div>
+    <div class="section-content">
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-road"></i> Address</span>
+            <span class="info-value">{{restaurant.address.street}}, {{restaurant.address.building}}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-city"></i> Borough</span>
+            <span class="info-value">{{restaurant.borough}}</span>
+        </div>
+        {{#if restaurant.address.zipcode}}
+        <div class="info-row">
+            <span class="info-label"><i class="fas fa-mail-bulk"></i> ZIP Code</span>
+            <span class="info-value">{{restaurant.address.zipcode}}</span>
+        </div>
+        {{/if}}
+    </div>
+</div>

@@ -1,0 +1,8 @@
+{{#if restaurant.images}}
+    <img src="{{getImageUrl restaurant.images}}" alt="{{restaurant.name}}" class="card-image">
+{{else}}
+    <div class="no-image-placeholder">
+        <i class="fas fa-utensils"></i>
+        <p>No image available</p>
+    </div>
+{{/if}}
