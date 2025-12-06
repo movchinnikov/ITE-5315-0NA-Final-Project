@@ -109,7 +109,7 @@ router.get('/search', async (req, res) => {
     }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const service = await getRestaurantService();
         const { id } = req.params;
@@ -124,9 +124,14 @@ router.get('/:id', async (req, res) => {
             });
         }
 
+        const userId = req.user ? req.user.user_id : null;
+
+        console.log('!!!!!' + userId);
+
         res.json({
             success: true,
-            ...result
+            ...result,
+            userId: userId
         });
     } catch (error) {
         res.status(500).json({
@@ -153,6 +158,61 @@ router.post('/:id/comments', authenticateToken, requireAuth, async (req, res) =>
             success: true,
             message: 'Comment added successfully',
             comment
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+router.put('/:restaurantId/comments/:commentId', authenticateToken, requireAuth, async (req, res) => {
+    try {
+        const { restaurantId, commentId } = req.params;
+        const { text, rating } = req.body;
+        
+        if (!text || text.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Comment text is required'
+            });
+        }
+
+        const service = await getRestaurantService();
+        const result = await service.updateComment(
+            restaurantId,
+            commentId,
+            req.user.userId,
+            { text: text.trim(), rating: rating || null }
+        );
+
+        res.json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+router.delete('/:restaurantId/comments/:commentId', authenticateToken, requireAuth, async (req, res) => {
+    try {
+        const { restaurantId, commentId } = req.params;
+        
+        const service = await getRestaurantService();
+        const result = await service.deleteComment(
+            restaurantId,
+            commentId,
+            req.user.userId
+        );
+
+        res.json({
+            success: true,
+            message: result.message
         });
     } catch (error) {
         res.status(400).json({

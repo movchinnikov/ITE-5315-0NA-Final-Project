@@ -90,8 +90,6 @@ class AuthService {
 
     verifyAccessToken(token) {
         try {
-            console.log(token);
-            console.log(this.accessTokenSecret);
             return jwt.verify(token, this.accessTokenSecret);
         } catch (error) {
             throw new Error('Invalid access token');

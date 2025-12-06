@@ -34,6 +34,8 @@ class ClientAuth {
         localStorage.setItem('accessToken', data.accessToken);
         localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('user', JSON.stringify(data.user));
+
+        document.cookie = `accessToken=${data.accessToken}; path=/; max-age=${60*60*24*7}; SameSite=Lax`;
         
         this.updateUI();
     }
@@ -98,6 +100,7 @@ class ClientAuth {
             if (response.success && response.user) {
                 this.user = response.user;
                 localStorage.setItem('user', JSON.stringify(response.user));
+                document.cookie = `accessToken=${token}; path=/; max-age=${60*60*24*7}; SameSite=Lax`;
                 this.updateUI();
             }
         } catch (error) {

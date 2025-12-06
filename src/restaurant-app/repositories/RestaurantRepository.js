@@ -226,6 +226,83 @@ class RestaurantRepository {
         }
     }
 
+    async updateComment(restaurantId, commentId, userId, updateData) {
+        try {
+            const result = await this.collection.updateOne(
+                { 
+                    _id: new ObjectId(restaurantId),
+                    'comments._id': new ObjectId(commentId),
+                    'comments.user_id': userId
+                },
+                { 
+                    $set: { 
+                        'comments.$.text': updateData.text,
+                        'comments.$.rating': updateData.rating,
+                        'comments.$.updated_at': new Date(),
+                        updated_at: new Date()
+                    }
+                }
+            );
+
+            if (result.modifiedCount === 0) {
+                const restaurant = await this.collection.findOne({
+                    _id: new ObjectId(restaurantId),
+                    'comments._id': new ObjectId(commentId)
+                });
+                
+                if (!restaurant) {
+                    throw new Error('Restaurant or comment not found');
+                }
+                throw new Error('You are not authorized to edit this comment');
+            }
+
+            return {
+                success: true,
+                message: 'Comment updated successfully'
+            };
+        } catch (error) {
+            throw new Error(`Update comment failed: ${error.message}`);
+        }
+    }
+
+    async deleteComment(restaurantId, commentId, userId) {
+        try {
+            const result = await this.collection.updateOne(
+                { 
+                    _id: new ObjectId(restaurantId),
+                    'comments._id': new ObjectId(commentId),
+                    'comments.user_id': userId
+                },
+                { 
+                    $pull: { 
+                        comments: { _id: new ObjectId(commentId) }
+                    },
+                    $set: { updated_at: new Date() }
+                }
+            );
+
+            if (result.modifiedCount === 0) {
+                const restaurant = await this.collection.findOne({
+                    _id: new ObjectId(restaurantId),
+                    'comments._id': new ObjectId(commentId)
+                });
+                
+                if (!restaurant) {
+                    throw new Error('Restaurant or comment not found');
+                }
+                
+                throw new Error('You are not authorized to delete this comment');
+            }
+
+            return {
+                success: true,
+                message: 'Comment deleted successfully'
+            };
+        } catch (error) {
+            throw new Error(`Delete comment failed: ${error.message}`);
+        }
+    }
+
     async getRestaurantWithComments(id, page = 1, limit = 10) {
         try {
             const restaurant = await this.findById(id, true);

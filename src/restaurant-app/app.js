@@ -6,6 +6,7 @@ const hbsHelpers = require('./helpers/hbsHelpers');
 const authRouter = require('./routes/authRouter');
 const restaurantsRouter = require('./routes/restaurantsRouter');
 const RestaurantService = require('./services/RestaurantService');
+const { authenticateToken, requireAuth } = require('./middleware/authMiddleware');
 
 try {
     require('dotenv').config({ path: __dirname + '/.env' });
@@ -74,7 +75,7 @@ async function initializeApp() {
             }
         });
 
-        app.get('/restaurants/:id', async (req, res) => {
+        app.get('/restaurants/:id', authenticateToken, async (req, res) => {
             try {
                 const { id } = req.params;
                 const restaurant = await restaurantService.findById(id);
@@ -83,9 +84,12 @@ async function initializeApp() {
                     return res.status(404).render('not-found');
                 }
 
+                const userId = req.user ? req.user.userId : null;
+
                 res.render('restaurant-details', {
                     title: restaurant.name,
                     restaurant: restaurant.toJSON(),
+                    userId: userId
                 });
             } catch (error) {
                 console.error('Error rendering restaurant details:', error);

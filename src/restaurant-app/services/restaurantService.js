@@ -94,6 +94,31 @@ class RestaurantService {
         }
     }
 
+    async updateComment(restaurantId, commentId, userId, updateData) {
+        try {
+            return await this.restaurantRepository.updateComment(
+                restaurantId, 
+                commentId, 
+                userId, 
+                updateData
+            );
+        } catch (error) {
+            throw new Error(`Update comment failed: ${error.message}`);
+        }
+    }
+
+    async deleteComment(restaurantId, commentId, userId) {
+        try {
+            return await this.restaurantRepository.deleteComment(
+                restaurantId, 
+                commentId, 
+                userId
+            );
+        } catch (error) {
+            throw new Error(`Delete comment failed: ${error.message}`);
+        }
+    }
+
     async searchByName(searchTerm, page = 1, limit = 12) {
         try {
             return await this.restaurantRepository.searchByName(searchTerm, page, limit);

@@ -51,6 +51,10 @@ module.exports = {
         return a > b;
     },
 
+    gte: function(a, b) {
+        return a >= b;
+    },
+
     lt: function(a, b) {
         return a < b;
     },

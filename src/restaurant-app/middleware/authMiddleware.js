@@ -8,32 +8,50 @@ function getAuthService() {
     return authService;
 }
 
+// middleware/auth.js
 const authenticateToken = (req, res, next) => {
-    console.log('=== authenticateToken middleware ===');
-    const authHeader = req.headers['authorization'];
-    console.log('Authorization header:', authHeader);
+    console.log('=== Authentication Check ===');
     
-    const token = authHeader && authHeader.split(' ')[1];
-    console.log('Extracted token:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+    let token = null;
+    
+    const authHeader = req.headers['authorization'];
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+        console.log('Token from Authorization header');
+    }
+    
+    if (!token && req.headers.cookie) {
+        const cookies = req.headers.cookie;
+        
+        const match = cookies.match(/accessToken=([^;]+)/);
+        if (match) {
+            token = match[1];
+            console.log('Token extracted from cookie:', token.substring(0, 20) + '...');
+        } else {
+            console.log('No accessToken found in cookies');
+        }
+    }
+    
+    if (!token && req.cookies && req.cookies.accessToken) {
+        token = req.cookies.accessToken;
+        console.log('Token from req.cookies (cookie-parser)');
+    }
     
     if (!token) {
-        console.log('No token found, setting user = null');
+        console.log('No token found anywhere');
         req.user = null;
         return next();
     }
-
+    
     try {
         const service = getAuthService();
-        console.log('Verifying token with authService...');
-        
         const decoded = service.verifyAccessToken(token);
-        console.log('Token verified successfully:', decoded);
+        console.log('Token valid, user:', decoded.username);
         
         req.user = decoded;
         next();
     } catch (error) {
-        console.error('Token verification failed:', error.message);
-        console.error('Error stack:', error.stack);
+        console.error('Token invalid:', error.message);
         req.user = null;
         next();
     }
