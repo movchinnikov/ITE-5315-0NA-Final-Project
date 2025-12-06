@@ -333,6 +333,14 @@ class RestaurantApp {
                             <span class="label">Latest Score:</span>
                             <span class="value">${restaurant.latestScore || 'N/A'}/100</span>
                         </div>
+                        <div class="info-item">
+                            <span class="label">Number of comments:</span>
+                            <span class="value">${restaurant.totalComments || '0'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Average Rating:</span>
+                            <span class="value">${restaurant.averageRating || 'N/A'}</span>
+                        </div>
                     </div>
                 </div>
             </div>

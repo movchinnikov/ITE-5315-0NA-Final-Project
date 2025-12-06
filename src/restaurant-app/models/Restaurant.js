@@ -58,9 +58,10 @@ class Restaurant {
     }
 
     getAverageRating() {
-        if (this.comments.length === 0) return 0;
+        if (this.comments.length === 0) return "N/A";
         const total = this.comments.reduce((sum, comment) => sum + (comment.rating || 0), 0);
-        return Math.round((total / this.comments.length) * 10) / 10;
+        const average = Math.round((total / this.comments.length) * 10) / 10;
+        return `${average.toFixed(1)}/5 ★`;
     }
 
     toJSONForList() {

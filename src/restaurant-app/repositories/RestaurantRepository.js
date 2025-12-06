@@ -33,8 +33,6 @@ class RestaurantRepository {
                 
                 if (nameValue === '') {
                     query.name = { $exists: true, $ne: "" };
-                } else {
-                    query.name = { $regex: nameValue, $options: 'i' };
                 }
             } else {
                 query.name = { $exists: true, $ne: "" };
@@ -55,7 +53,7 @@ class RestaurantRepository {
             const restaurantModels = restaurants.map(r => new Restaurant(r));
 
             return {
-                restaurants: restaurantModels.map(r => r.toJSONForList()).filter(r => r !== null),
+                restaurants: restaurantModels.map(r => r.toJSON()).filter(r => r !== null),
                 totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page
@@ -90,8 +88,6 @@ class RestaurantRepository {
                 
                 if (nameValue === '') {
                     query.name = { $exists: true, $ne: "" };
-                } else {
-                    query.name = { $regex: nameValue, $options: 'i' };
                 }
             } else {
                 query.name = { $exists: true, $ne: "" };
@@ -112,7 +108,7 @@ class RestaurantRepository {
             const restaurantModels = restaurants.map(r => new Restaurant(r));
 
             return {
-                restaurants: restaurantModels.map(r => r.toJSONForList()).filter(r => r !== null),
+                restaurants: restaurantModels.map(r => r.toJSON()).filter(r => r !== null),
                 totalCount,
                 totalPages: Math.ceil(totalCount / limit),
                 currentPage: page
