@@ -2,7 +2,7 @@ let authService = null;
 
 function getAuthService() {
     if (!authService) {
-        const AuthService = require('../services/authService');
+        const AuthService = require('../services/AuthService');
         authService = new AuthService();
     }
     return authService;
