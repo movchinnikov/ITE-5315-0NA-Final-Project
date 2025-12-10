@@ -115,8 +115,8 @@ async function initializeApp() {
             res.status(500).render('error', { message: 'Internal server error' });
         });
 
-        app.listen(PORT, () => {
-            console.log(`Server started on http://localhost:${PORT}`);
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server is running on port ${PORT}`);
         });
 
         process.on('SIGTERM', async () => {
